@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "sample_id"
+version = "0.1.0"
+description = "Acoustic fingerprinting for Sample Identification"
+authors = [
+    "Colin Fahy <colin@cfahy.com>",
+]
+license = "LGPL-3.0"
+readme = "README.md"
+homepage = "https://github.com/Curly-Mo/sample-id"
+repository = "https://github.com/Curly-Mo/sample-id"
+documentation = "https://sample_id.readthedocs.org/en/latest/"
+keywords = []
+classifiers = [
+    # "License :: OSI Approved :: LGPL-3.0",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+
+[tool.poetry.scripts]
+sample_id = 'sample_id.cli:cli'
+
+# Requirements
+[tool.poetry.dependencies]
+python = "^3.6"
+typing = "^3.6"
+click = "^6.7"
+
+[tool.poetry.dev-dependencies]
+pytest = "~3.4"
+pytest-cov = "~2.5"
+tox = "*"
+sphinx = "*"
+sphinx-autobuild = "*"
+sphinx_rtd_theme = "*"
+sphinxcontrib-apidoc = "*"
+# black only works on python 3.6+, still in alpha, but it's good
+black = { version = "^18.3-alpha.0", python = "^3.6" }
+yapf = "*"
+flake8 = "*"
+isort = "*"
+bandit = "*"
+mypy = { version = "*", optional = true }
+
+[tool.poetry.extras]
+mypy = ["mypy"]
+
+[tool.black]
+line-length = 120
+skip-string-normalization = true
