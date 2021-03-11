@@ -17,10 +17,11 @@ Submodules
 
    sample_id.analysis
    sample_id.ann
+   sample_id.audio
    sample_id.cli
    sample_id.hough
    sample_id.main
-   sample_id.sample_recognition
+   sample_id.trackio
 
 Module contents
 ---------------

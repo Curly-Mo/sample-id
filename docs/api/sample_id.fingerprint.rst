@@ -15,7 +15,6 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   sample_id.fingerprint.audio
    sample_id.fingerprint.fingerprint
    sample_id.fingerprint.spectral_peaks
 
