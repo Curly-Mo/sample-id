@@ -22,9 +22,20 @@ sample_id = 'sample_id.cli:cli'
 
 # Requirements
 [tool.poetry.dependencies]
-python = "^3.6"
-typing = "^3.6"
-click = "^6.7"
+python = "^3.7"
+typing = "^3.7"
+click = "^7.1"
+mutagen = "^1.45.1"
+joblib = "^1.0.1"
+numpy = "^1.20.1"
+matplotlib = "^3.3.4"
+seaborn = "^0.11.1"
+librosa = "^0.8.0"
+tabulate = "^0.8.9"
+Cython = "^0.29.22"
+cyvlfeat = "^0.7.0"
+annoy = "^1.17.0"
+sklearn = "^0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "~3.4"
@@ -34,8 +45,7 @@ sphinx = "*"
 sphinx-autobuild = "*"
 sphinx_rtd_theme = "*"
 sphinxcontrib-apidoc = "*"
-# black only works on python 3.6+, still in alpha, but it's good
-black = { version = "^18.3-alpha.0", python = "^3.6" }
+black = { version = "^20.8b1", python = "^3.6" }
 yapf = "*"
 flake8 = "*"
 isort = "*"
@@ -47,4 +57,3 @@ mypy = ["mypy"]
 
 [tool.black]
 line-length = 120
-skip-string-normalization = true
