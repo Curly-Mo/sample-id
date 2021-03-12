@@ -1,28 +1,26 @@
 """Acoustic fingerprinting for Sample Identification"""
 import datetime
-import os
-import logging
-from typing import Iterable
-from collections import defaultdict
-import math
-import statistics
 import itertools
+import logging
+import math
+import os
+import statistics
+from collections import defaultdict
+from typing import Iterable
 
-import numpy as np
 import joblib
 import librosa
 import librosa.display
-from tabulate import tabulate
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.patches import ConnectionPatch
+import numpy as np
 import seaborn
+from matplotlib.patches import ConnectionPatch
+from tabulate import tabulate
 
-from sample_id import ann
-from sample_id import hough
-from sample_id import trackio
-from sample_id.trackio import Track
+from sample_id import ann, hough, trackio
 from sample_id.fingerprint import fingerprint
+from sample_id.trackio import Track
 
 logger = logging.getLogger(__name__)
 

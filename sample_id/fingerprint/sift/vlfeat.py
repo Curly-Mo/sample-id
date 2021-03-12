@@ -1,10 +1,9 @@
 import logging
 
-import numpy as np
 import cyvlfeat.sift
+import numpy as np
 
-from . import SiftFingerprint, Keypoint
-
+from . import Keypoint, SiftFingerprint
 
 logger = logging.getLogger(__name__)
 

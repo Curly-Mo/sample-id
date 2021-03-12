@@ -1,12 +1,10 @@
 import logging
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-import numpy as np
 import librosa
+import numpy as np
 
-from sample_id import fingerprint
-from sample_id import audio
-
+from sample_id import audio, fingerprint
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,6 @@
 import itertools
 import logging
+
 if not __name__ in logging.Logger.manager.loggerDict:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
@@ -8,17 +9,17 @@ if not __name__ in logging.Logger.manager.loggerDict:
     logger.addHandler(handler)
 logger = logging.getLogger(__name__)
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import ConnectionPatch
+import numpy as np
 import seaborn
+from matplotlib.patches import ConnectionPatch
+
 seaborn.set(style='ticks')
+import ann
 #seaborn.set_context("paper")
 import cv2
-import librosa
 import joblib
-
-import ann
+import librosa
 
 
 class Keypoint():

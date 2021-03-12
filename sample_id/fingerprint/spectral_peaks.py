@@ -1,7 +1,8 @@
-import sys
 import itertools
-from collections import Counter
 import logging
+import sys
+from collections import Counter
+
 logger = logging.getLogger('spectral_peaks')
 if not logger.handlers:
     stream = logging.StreamHandler(sys.stdout)
@@ -9,11 +10,12 @@ if not logger.handlers:
     logger.addHandler(stream)
 
 import librosa
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
-from matplotlib.patches import ConnectionPatch
 import seaborn
+from matplotlib.patches import ConnectionPatch
+
 seaborn.set(style='ticks')
 
 import ann

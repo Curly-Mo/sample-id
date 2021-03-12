@@ -1,21 +1,20 @@
 #!/usr/bin/env python
-import os
 import argparse
 import logging
 import logging.config
+import os
 import statistics
 from collections import defaultdict
 
+import joblib
 import matplotlib
 import matplotlib.pyplot as plt
-import seaborn
-import joblib
 import numpy as np
+import seaborn
+from matplotlib.backends.backend_pgf import FigureCanvasPgf
+from sample_recognition import Match, Neighbor, Result
 from tabulate import tabulate
 
-from sample_recognition import Result, Match, Neighbor
-
-from matplotlib.backends.backend_pgf import FigureCanvasPgf
 matplotlib.backend_bases.register_backend('pdf', FigureCanvasPgf)
 seaborn.set(style='ticks')
 seaborn.set_context("paper")
