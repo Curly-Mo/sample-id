@@ -6,10 +6,11 @@ python:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y install libvlfeat-dev python-dev build-essential cython3
+  - sudo apt-get -y install libvlfeat-dev python-dev build-essential
 
 install:
   - pip install poetry
+  - pip install cython
   - poetry install -v
 
 script:
