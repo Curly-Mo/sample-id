@@ -8,9 +8,6 @@ before_install:
   - sudo apt-get update
   - sudo apt-get -y install libvlfeat-dev
 
-virtualenv:
-  system_site_packages: true
-
 install:
   - pip install poetry
   - poetry install -v
