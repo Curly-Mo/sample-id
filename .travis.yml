@@ -14,7 +14,6 @@ before_install:
 
 install:
   - pip install poetry
-  - pip install cython
   - poetry install -v
 
 script:
