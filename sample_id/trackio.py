@@ -1,8 +1,11 @@
 import os
+import logging
 from typing import Iterable
 
 import joblib
 import mutagen
+
+logger = logging.getLogger(__name__)
 
 
 class Track(object):
@@ -56,13 +59,13 @@ def track_from_path(path):
         if track.artist and track.title:
             return track
     except:
-        pass
+        logger.debug("Can't build from tags")
     try:
         track = track_from_filename(path)
         if track.artist and track.title:
             return track
     except:
-        pass
+        logger.debug("Can't build from filename")
     name = os.path.basename(path)
     name = os.path.splitext(name)[0]
     track = Track(name, name, path)
