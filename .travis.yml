@@ -8,7 +8,13 @@ dist: bionic
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y install libvlfeat-dev libvlfeat0 python-dev build-essential cython3
+  - sudo apt-get -y install libvlfeat-dev python-dev build-essential cython cython3
+  - ls /usr/include/vl/
+  - git clone https://github.com/vlfeat/vlfeat.git vlfeat
+  - cd vlfeat
+  - make
+  - mkdir -p /usr/local/include/vl
+  - cp vl/*.h /usr/local/include/vl
   - gcc --version
   - ls /usr/include/vl/
 
