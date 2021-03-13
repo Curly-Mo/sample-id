@@ -18,6 +18,5 @@ def runner():
 
 
 def test_cli(runner):
-    # result = runner.invoke(cli.cli, ['--verbose'])
-    # assert result.exit_code == 0
-    pass
+    result = runner.invoke(cli.cli, ["--help"])
+    assert result.exit_code == 0
