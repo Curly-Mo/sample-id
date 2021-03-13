@@ -46,7 +46,6 @@ sphinx-autobuild = "*"
 sphinx_rtd_theme = "*"
 sphinxcontrib-apidoc = "*"
 black = { version = "^20.8b1", python = "^3.6" }
-yapf = "*"
 flake8 = "*"
 isort = "*"
 bandit = "*"
