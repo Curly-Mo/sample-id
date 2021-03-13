@@ -40,6 +40,6 @@ env:
 deploy:
   # Deploy tags to PyPi
   provider: script
-  script: poetry -vvv publish --build -u $PYPI_USER -p $PYPI_PASSWORD
+  script: poetry publish --build -vvv -u $PYPI_USER -p $PYPI_PASSWORD
   on:
     tags: true
