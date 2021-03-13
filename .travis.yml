@@ -1,9 +1,16 @@
 language: python
 
 python:
-  - 3.6
-  # - 3.7
+  - 3.7-dev
   # - pypy3
+
+dist: bionic
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install libsndfile1-dev
+  # Install vlfeat from source
+  - git clone https://github.com/vlfeat/vlfeat.git vlfeat && cd vlfeat && make && sudo cp bin/glnxa64/libvl.so /usr/local/lib && sudo mkdir -p /usr/local/include/vl -&& sudo cp vl/*.h /usr/local/include/vl
 
 install:
   - pip install poetry
