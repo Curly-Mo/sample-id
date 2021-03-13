@@ -16,7 +16,6 @@ from matplotlib.patches import ConnectionPatch
 
 seaborn.set(style="ticks")
 import ann
-
 # seaborn.set_context("paper")
 import cv2
 import joblib
