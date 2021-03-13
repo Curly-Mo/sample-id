@@ -4,7 +4,12 @@ import numpy as np
 
 def cqtgram(y, sr, hop_length=512, octave_bins=24, n_octaves=8, fmin=40, perceptual_weighting=False):
     s_complex = librosa.cqt(
-        y, sr=sr, hop_length=hop_length, bins_per_octave=octave_bins, n_bins=octave_bins * n_octaves, fmin=fmin,
+        y,
+        sr=sr,
+        hop_length=hop_length,
+        bins_per_octave=octave_bins,
+        n_bins=octave_bins * n_octaves,
+        fmin=fmin,
     )
     specgram = np.abs(s_complex)
     if perceptual_weighting:

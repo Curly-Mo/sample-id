@@ -328,7 +328,13 @@ def plot_clusters(specgram, clusters, spectrograms, settings, title, plot_all_kp
     if len(clusters) == 0:
         logger.info("No matches found")
         plot_spectrogram(
-            specgram, settings["hop_length"], settings["octave_bins"], settings["fmin"], title, sr=settings["sr"], cbar=True
+            specgram,
+            settings["hop_length"],
+            settings["octave_bins"],
+            settings["fmin"],
+            title,
+            sr=settings["sr"],
+            cbar=True,
         )
         return
     rows = 2.0
@@ -354,7 +360,9 @@ def plot_clusters(specgram, clusters, spectrograms, settings, title, plot_all_kp
                 ax2 = fig.add_subplot(rows, cols, cols + len(source_plots) + 1)
                 if loaded_spectrograms.get(match.neighbors[0].kp.source, None) is None:
                     logger.info(
-                        "Loading spectrogram into memory: {}".format(spectrograms[match.neighbors[0].kp.source.decode()])
+                        "Loading spectrogram into memory: {}".format(
+                            spectrograms[match.neighbors[0].kp.source.decode()]
+                        )
                     )
                     spec = joblib.load(spectrograms[match.neighbors[0].kp.source.decode()])
                     loaded_spectrograms[match.neighbors[0].kp.source] = spec
@@ -431,7 +439,8 @@ def plot_spectrogram(specgram, hop_length, octave_bins, fmin, title, sr=22050, x
 
 
 def train_keypoints_for_paths(
-    track_paths: Iterable[str], **kwargs,
+    track_paths: Iterable[str],
+    **kwargs,
 ):
     tracks = trackio.parse_track_files(track_paths)
     return train_keypoints(tracks, **kwargs)
@@ -515,30 +524,22 @@ def save_model(model, directory):
 def find_matches(track, model):
     track_id = str(track)
     # Extract keypoints
-    fp = fingerprint.from_file(
-        track.path, model.settings['sr'], track_id, model.settings
-    )
+    fp = fingerprint.from_file(track.path, model.settings["sr"], track_id, model.settings)
 
     # Find (approximate) nearest neighbors
-    distances, indices = ann.find_neighbors(
-        model.matcher,
-        fp.descriptors,
-        algorithm=model.settings['algorithm'],
-        k=20
-    )
+    distances, indices = ann.find_neighbors(model.matcher, fp.descriptors, algorithm=model.settings["algorithm"], k=20)
 
     # Build match  objects
-    logger.info('Building match objects')
+    logger.info("Building match objects")
     matches = []
     for i, distance in enumerate(distances):
-        neighbors = [
-            Neighbor(model.keypoints[index], dist) for
-            index, dist in zip(indices[i], distance)
-        ]
-        matches.append(Match(
-            fp.keypoints[i],
-            neighbors,
-        ))
+        neighbors = [Neighbor(model.keypoints[index], dist) for index, dist in zip(indices[i], distance)]
+        matches.append(
+            Match(
+                fp.keypoints[i],
+                neighbors,
+            )
+        )
     return matches, fp.spectrogram, fp.keypoints
 
 
@@ -560,7 +561,14 @@ def query_track(
     matches, specgram, kp = find_matches(track, model)
 
     cluster_dist = int((model.settings["sr"] / model.settings["hop_length"]) * cluster_dist)
-    clusters = filter_matches(matches, abs_thresh, ratio_thresh, cluster_dist, cluster_size, match_orientation,)
+    clusters = filter_matches(
+        matches,
+        abs_thresh,
+        ratio_thresh,
+        cluster_dist,
+        cluster_size,
+        match_orientation,
+    )
 
     # Plot keypoint images and Draw matching lines
     spectrograms = model.spectrograms
@@ -588,7 +596,9 @@ def query_track(
 
 
 def query_tracks_for_paths(
-    track_paths: Iterable[str], model, **kwargs,
+    track_paths: Iterable[str],
+    model,
+    **kwargs,
 ):
     tracks = trackio.parse_track_files(track_paths)
     return query_tracks(tracks, model, **kwargs)
@@ -670,4 +680,3 @@ def display_results(results):
     #     neg = instruments[i]["false_neg"]
     #     recalls.append([i, pos / (pos + neg)])
     # print(tabulate(recalls, headers=["recall"], tablefmt="latex"))
-

@@ -17,7 +17,7 @@ class Track(object):
         self.sampled = []
 
     def __repr__(self):
-        return '{} - {}'.format(self.artist, self.title).encode('ascii', 'ignore').decode()
+        return "{} - {}".format(self.artist, self.title).encode("ascii", "ignore").decode()
 
 
 class Sample(object):
@@ -30,7 +30,7 @@ class Sample(object):
         self.derivative_times = []
 
     def __repr__(self):
-        return '{} :: {}'.format(self.original, self.derivative)
+        return "{} :: {}".format(self.original, self.derivative)
 
 
 def flatten_paths(paths: Iterable[str]):
@@ -72,8 +72,8 @@ def track_from_path(path):
 def track_from_tags(path):
     mutagen_track = mutagen.File(path)
     track = Track(
-        artist=mutagen_track['artist'][0],
-        title=mutagen_track['title'][0],
+        artist=mutagen_track["artist"][0],
+        title=mutagen_track["title"][0],
         path=path,
     )
     return track
@@ -82,7 +82,7 @@ def track_from_tags(path):
 def track_from_filename(path):
     basename = os.path.basename(path)
     name = os.path.splitext(basename)[0]
-    parts = name.split(' - ')
+    parts = name.split(" - ")
     artist = parts[2].strip()
     title = parts[3].strip()
     track = Track(artist, title, path)

@@ -61,7 +61,8 @@ class SiftFingerprint(fingerprint.Fingerprint):
         logger.info("Removing edge keypoints...")
         min_value = np.min(specgram)
         start = next(
-            (index for index, frame in enumerate(specgram.T) if sum(value > min_value for value in frame) > height / 2), 0
+            (index for index, frame in enumerate(specgram.T) if sum(value > min_value for value in frame) > height / 2),
+            0,
         )
         end = specgram.shape[1] - next(
             (

@@ -5,9 +5,10 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def from_file(audio_path, sr, id, settings, feature='sift'):
-    if feature == 'sift':
+def from_file(audio_path, sr, id, settings, feature="sift"):
+    if feature == "sift":
         from sample_id.fingerprint import sift
+
         return sift.from_file(audio_path, sr, id, settings)
     else:
         raise NotImplementedError
@@ -50,19 +51,15 @@ class Fingerprint:
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
-            logger.info('Removing duplicate/similar keypoints...')
+            logger.info("Removing duplicate/similar keypoints...")
             a = np.array(self.descriptors)
             rounding_factor = 10
-            b = np.ascontiguousarray(
-                (a//rounding_factor)*rounding_factor
-            ).view(
+            b = np.ascontiguousarray((a // rounding_factor) * rounding_factor).view(
                 np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
             )
             _, idx = np.unique(b, return_index=True)
             desc = a[sorted(idx)]
             kp = [k for i, k in enumerate(self.keypoints) if i in idx]
-            logger.info('Removed {} duplicate keypoints'.format(
-                a.shape[0] - idx.shape[0])
-            )
+            logger.info("Removed {} duplicate keypoints".format(a.shape[0] - idx.shape[0]))
             self.keypoints = kp
             self.descriptors = desc

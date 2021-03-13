@@ -3,7 +3,7 @@ import logging
 import sys
 from collections import Counter
 
-logger = logging.getLogger('spectral_peaks')
+logger = logging.getLogger("spectral_peaks")
 if not logger.handlers:
     stream = logging.StreamHandler(sys.stdout)
     stream.setLevel(logging.INFO)
@@ -16,24 +16,26 @@ import scipy
 import seaborn
 from matplotlib.patches import ConnectionPatch
 
-seaborn.set(style='ticks')
+seaborn.set(style="ticks")
 
 import ann
 
 
 def spectral_peaks(audio_path, hop_length, octave_bins=24, n_octaves=7, wn=0.5, num_peaks=5, plot=False):
-    logger.info('{}: Loading signal into memory...'.format(audio_path))
+    logger.info("{}: Loading signal into memory...".format(audio_path))
     y, sr = librosa.load(audio_path)
-    logger.info('{}: Generating Spectrogram...'.format(audio_path))
-    S = librosa.core.constantq.cqt(y, sr=22050, hop_length=hop_length, bins_per_octave=octave_bins, n_bins=octave_bins*n_octaves, fmin=20)
+    logger.info("{}: Generating Spectrogram...".format(audio_path))
+    S = librosa.core.constantq.cqt(
+        y, sr=22050, hop_length=hop_length, bins_per_octave=octave_bins, n_bins=octave_bins * n_octaves, fmin=20
+    )
     S = librosa.logamplitude(S, ref_power=np.max)
 
     # Find peaks
-    logger.info('{}: Finding Peaks...'.format(audio_path))
+    logger.info("{}: Finding Peaks...".format(audio_path))
     peakx, peaky = scipy.signal.argrelextrema(lowpass(S.T, wn=wn), np.greater, axis=1)
 
     # Convert peaks to 'matrix'
-    logger.info('{}: Creating peak matrix...'.format(audio_path))
+    logger.info("{}: Creating peak matrix...".format(audio_path))
     peaks = np.full([num_peaks, S.shape[1]], -1, dtype=int)
     for x, points in itertools.groupby(zip(peakx, peaky), lambda x: x[0]):
         points = list(points)
@@ -43,11 +45,11 @@ def spectral_peaks(audio_path, hop_length, octave_bins=24, n_octaves=7, wn=0.5, 
             peaks[:, x] = sorted(ys[:num_peaks])
     peaks = np.clip(peaks, -1, 168)
 
-   # # Convert peaks to distances between peaks
-   # logger.info('{}: Finding peak distances...'.format(audio_path))
-   # peak_dists = np.empty([len(list(itertools.combinations(range(num_peaks), 2))), peaks.shape[1]], dtype=int)
-   # for x, frame in enumerate(peaks.T):
-   #     peak_dists[:, x] = [b - a for (a, b) in itertools.combinations(frame, 2)]
+    # # Convert peaks to distances between peaks
+    # logger.info('{}: Finding peak distances...'.format(audio_path))
+    # peak_dists = np.empty([len(list(itertools.combinations(range(num_peaks), 2))), peaks.shape[1]], dtype=int)
+    # for x, frame in enumerate(peaks.T):
+    #     peak_dists[:, x] = [b - a for (a, b) in itertools.combinations(frame, 2)]
 
     # Plot
     if plot:
@@ -58,19 +60,19 @@ def spectral_peaks(audio_path, hop_length, octave_bins=24, n_octaves=7, wn=0.5, 
             hop_length=hop_length,
             bins_per_octave=octave_bins,
             fmin=20,
-            x_axis='time',
-            y_axis='cqt_hz',
+            x_axis="time",
+            y_axis="cqt_hz",
             n_xticks=10,
             n_yticks=20,
         )
-        #plt.imshow(S, aspect='auto', origin='lower')
+        # plt.imshow(S, aspect='auto', origin='lower')
         plt.title(audio_path)
-        plt.colorbar(format='%+2.0f dB')
+        plt.colorbar(format="%+2.0f dB")
         # Plot Peaks
         peakx = [np.repeat(x, len(frame)) for (x, frame) in enumerate(peaks.T)]
         peakx = [i for i in peakx]
         peaky = [i for frame in peaks.T for i in frame]
-        plt.scatter(peakx, peaky, c='y')
+        plt.scatter(peakx, peaky, c="y")
         plt.tight_layout()
     return S, peaks
 
@@ -88,7 +90,7 @@ def find_peaks(matrix, axis=1, width=10):
 
 
 def lowpass(x, order=8, wn=0.4, axis=1):
-    b, a = scipy.signal.butter(order, wn, btype='low')
+    b, a = scipy.signal.butter(order, wn, btype="low")
     y = scipy.signal.filtfilt(b, a, x, axis=axis)
     return y
 
@@ -103,39 +105,43 @@ def match(path1, path2, hop_length, wn=0.4, num_peaks=5, thresh=0.001, plot=True
     mng = plt.get_current_fig_manager()
     mng.full_screen_toggle()
 
-    logger.info('Finding peak distances...')
+    logger.info("Finding peak distances...")
     peak_dists2 = np.diff(peaks2, axis=0)
 
     num_combos = len(list(itertools.combinations(range(target_peaks), num_peaks)))
-    peak_dists1 = np.empty([num_peaks-1, peaks1.shape[1]*(num_combos+1)], dtype=int)
+    peak_dists1 = np.empty([num_peaks - 1, peaks1.shape[1] * (num_combos + 1)], dtype=int)
     for x, frame in enumerate(peaks1.T):
-        start = x*(num_combos+1)
-        end = (x+1)*(num_combos+1) - 1
+        start = x * (num_combos + 1)
+        end = (x + 1) * (num_combos + 1) - 1
         peak_dists1[:, start:end] = np.array([np.diff(combo) for combo in itertools.combinations(frame, num_peaks)]).T
 
-    logger.info('Finding nearest neighbors')
+    logger.info("Finding nearest neighbors")
     distances, nearest_neighbors = ann.nearest_neighbors(peak_dists2.T, peak_dists1.T, k=1)
-   # nearest_neighbors = []
-   # for frame in peak_dists1:
-   #     score = 0
-   #     nn = None
-   #     for i, yframe in enumerate(peak_dists2):
-   #         count = count_matches(frame, yframe)
-   #         if count > score:
-   #             score = count
-   #             nn = i
-   #     nearest_neighbors.append({'score': score, 'index': nn})
+    # nearest_neighbors = []
+    # for frame in peak_dists1:
+    #     score = 0
+    #     nn = None
+    #     for i, yframe in enumerate(peak_dists2):
+    #         count = count_matches(frame, yframe)
+    #         if count > score:
+    #             score = count
+    #             nn = i
+    #     nearest_neighbors.append({'score': score, 'index': nn})
 
-    logger.info('Drawing lines between matches')
+    logger.info("Drawing lines between matches")
     for x, nn in enumerate(nearest_neighbors[:-1]):
         if distances[x] < thresh:
-            if any(n in nearest_neighbors[x+1:x+(num_combos*3)] for n in [nn+1, nn+2, nn+3]):
+            if any(n in nearest_neighbors[x + 1 : x + (num_combos * 3)] for n in [nn + 1, nn + 2, nn + 3]):
                 con = ConnectionPatch(
-                    xyA=(x/num_combos, 0), xyB=(nn, S2.shape[0]),
-                    coordsA='data', coordsB='data',
-                    axesA=ax1, axesB=ax2,
-                    arrowstyle='<-', linewidth=1,
-                    zorder=999
+                    xyA=(x / num_combos, 0),
+                    xyB=(nn, S2.shape[0]),
+                    coordsA="data",
+                    coordsB="data",
+                    axesA=ax1,
+                    axesB=ax2,
+                    arrowstyle="<-",
+                    linewidth=1,
+                    zorder=999,
                 )
                 ax1.add_artist(con)
                 ax2.set_zorder(-1)
@@ -148,13 +154,13 @@ def nearest_neighbors(peaks1, peaks2):
     peak_dists = [[] for i in range(len(peaks1))]
     for x, frame in enumerate(peaks1):
         for a, b in itertools.combinations(frame, 2):
-            peak_dists[x].append(b-a)
+            peak_dists[x].append(b - a)
 
 
 def count_matches(lista, listb):
     if len(lista) > len(listb):
-       lista, listb = listb, lista
+        lista, listb = listb, lista
 
     a_count = Counter(lista)
     b_count = Counter(listb)
-    return sum(min(b_count[ak], av) for ak,av in a_count.iteritems())
+    return sum(min(b_count[ak], av) for ak, av in a_count.iteritems())
