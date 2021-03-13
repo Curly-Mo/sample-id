@@ -51,7 +51,7 @@ sphinx_rtd_theme = "*"
 sphinxcontrib-apidoc = "*"
 black = { version = "^20.8b1", python = "^3.6" }
 flake8 = "*"
-isort = "*"
+isort = "^5.7"
 bandit = "*"
 mypy = { version = "*", optional = true }
 

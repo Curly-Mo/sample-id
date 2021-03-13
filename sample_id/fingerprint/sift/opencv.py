@@ -1,25 +1,17 @@
 import itertools
 import logging
 
-if not __name__ in logging.Logger.manager.loggerDict:
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(asctime)s :-: %(message)s", "%H:%M:%S"))
-    logger.addHandler(handler)
-logger = logging.getLogger(__name__)
-
+import ann
+import cv2
+import joblib
+import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn
 from matplotlib.patches import ConnectionPatch
 
 seaborn.set(style="ticks")
-import ann
-# seaborn.set_context("paper")
-import cv2
-import joblib
-import librosa
+logger = logging.getLogger(__name__)
 
 
 class Keypoint:
