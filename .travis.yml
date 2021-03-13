@@ -17,6 +17,8 @@ before_install:
   - make
   - ls /usr/include/vl/ || echo "nope"
   - ls /usr/local/include/vl/ || echo "nope"
+  - ls /usr/local/lib/ || echo "nope"
+  - sudo cp bin/glnxa64/libvl.so /usr/local/lib
   - sudo mkdir -p /usr/local/include/vl
   - sudo cp vl/*.h /usr/local/include/vl
   - ls /usr/include/vl/ || echo "nope"
