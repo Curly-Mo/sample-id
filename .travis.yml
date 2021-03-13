@@ -7,23 +7,8 @@ python:
 dist: bionic
 
 before_install:
-  - sudo apt-get update
-  - sudo apt-get -y install libvlfeat-dev python-dev build-essential cython3
-  - ls /usr/include/vl/ || echo "nope"
-  - ls /usr/local/include/vl/ || echo "nope"
-  - echo $PATH
-  - git clone https://github.com/vlfeat/vlfeat.git vlfeat
-  - cd vlfeat
-  - make
-  - ls /usr/include/vl/ || echo "nope"
-  - ls /usr/local/include/vl/ || echo "nope"
-  - ls /usr/local/lib/ || echo "nope"
-  - sudo cp bin/glnxa64/libvl.so /usr/local/lib
-  - sudo mkdir -p /usr/local/include/vl
-  - sudo cp vl/*.h /usr/local/include/vl
-  - ls /usr/include/vl/ || echo "nope"
-  - ls /usr/local/include/vl/ || echo "nope"
-  - echo $PATH
+  # Install vlfeat from source
+  - git clone https://github.com/vlfeat/vlfeat.git vlfeat && cd vlfeat && make && sudo cp bin/glnxa64/libvl.so /usr/local/lib && sudo mkdir -p /usr/local/include/vl -&& sudo cp vl/*.h /usr/local/include/vl
 
 install:
   - pip install poetry
