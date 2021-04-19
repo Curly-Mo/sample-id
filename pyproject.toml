@@ -47,7 +47,7 @@ pytest-cov = "~2.11"
 tox = "*"
 sphinx = "*"
 sphinx-autobuild = "*"
-sphinx_rtd_theme = "*"
+sphinx-rtd-theme = "*"
 sphinxcontrib-apidoc = "*"
 black = { version = "^20.8b1", python = "^3.6" }
 flake8 = "*"
@@ -57,6 +57,7 @@ mypy = { version = "*", optional = true }
 
 [tool.poetry.extras]
 mypy = ["mypy"]
+docs = ["sphinx", "sphinx-autobuild", "sphinx-rtd-theme", "sphinxcontrib-apidoc"]
 
 [tool.black]
 line-length = 120
