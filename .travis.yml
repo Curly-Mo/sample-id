@@ -20,7 +20,7 @@ script:
   - poetry run tox -vv
 
 after_success:
-  - pip install python-coveralls
+  - pip install coveralls
   - coveralls
 
 notifications:
