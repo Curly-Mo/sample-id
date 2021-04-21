@@ -14,7 +14,6 @@
 #
 import os
 import sys
-from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('..'))
 
 
@@ -27,10 +26,9 @@ description = 'Acoustic fingerprinting for Sample Identification'
 project_slug = 'sample_id'
 
 # The short X.Y version
-version = ''
+version = '0.1.0'
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -186,11 +184,4 @@ apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
 
 # -- mock deps that depend on C binaries for readthedocs ---------------------
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
-
-
-MOCK_MODULES = ['tensorflow', 'numpy', 'pandas', 'cyvlfeat']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+autodoc_mock_imports = ['tensorflow', 'numpy', 'pandas', 'cyvlfeat']
