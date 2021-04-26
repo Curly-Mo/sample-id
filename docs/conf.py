@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'Sample ID'
-ropyright = '2021, Colin Fahy'
+copyright = '2021, Colin Fahy'
 author = 'Colin Fahy'
 description = 'Acoustic fingerprinting for Sample Identification'
 project_slug = 'sample_id'
@@ -41,6 +41,7 @@ release = '0.1.0'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -185,4 +186,4 @@ apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
 
 # -- mock deps that depend on C binaries for readthedocs ---------------------
-autodoc_mock_imports = ['tensorflow', 'numpy', 'pandas', 'cyvlfeat']
+autodoc_mock_imports = ['tensorflow']
