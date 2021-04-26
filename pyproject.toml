@@ -56,9 +56,9 @@ sphinx-autobuild = "*"
 sphinx-rtd-theme = "*"
 sphinxcontrib-apidoc = "*"
 sphinx-autodoc-typehints = "*"
-black = { version = "^20.8b1", python = "^3.6" }
+black = { version = "^21.4b0", python = "^3.6" }
 flake8 = "*"
-isort = "^5.7"
+isort = "^5.8"
 bandit = "*"
 mypy = { version = "*", optional = true }
 
