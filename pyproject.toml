@@ -16,7 +16,6 @@ repository = "https://github.com/Curly-Mo/sample-id"
 documentation = "https://sample_id.readthedocs.org/en/latest/"
 keywords = []
 classifiers = [
-    # "License :: OSI Approved :: LGPL-3.0",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
@@ -26,7 +25,7 @@ sample_id = 'sample_id.cli:cli'
 
 # Requirements
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.7,<3.10"
 typing = "^3.7"
 click = "^7.1"
 mutagen = "^1.45.1"
@@ -35,36 +34,52 @@ numpy = "^1.20.1"
 matplotlib = "^3.3.4"
 seaborn = "^0.11.1"
 librosa = "^0.8.0"
+numba = "^0.53.1"
 tabulate = "^0.8.9"
 annoy = "^1.17.0"
 sklearn = "^0.0"
-Cython = { version = "^0.29.22", optional = true }
+Cython = "^0.29.22"
 cyvlfeat = { version = "^0.7.0", optional = true }
 Sphinx = {version = "^3.5.4", optional = true}
 sphinx-autobuild = {version = "^2021.3.14", optional = true}
 sphinx-rtd-theme = {version = "^0.5.2", optional = true}
 sphinxcontrib-apidoc = {version = "^0.3.0", optional = true}
 sphinx-autodoc-typehints = {version = "^1.12.0", optional = true}
+recommonmark = {version = "^0.7.1", optional = true}
+toml = {version = "^0.10.2", optional = true}
+sphinx-click = {version = "^2.7.1", optional = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "~6.2"
 pytest-cov = "~2.11"
 tox = "*"
+black = { version = "^21.4b0", python = "^3.6" }
+flake8 = "*"
+isort = "^5.8"
+bandit = "*"
+mypy = { version = "*", optional = true }
 sphinx = "*"
 sphinx-autobuild = "*"
 sphinx-rtd-theme = "*"
 sphinxcontrib-apidoc = "*"
 sphinx-autodoc-typehints = "*"
-black = { version = "^20.8b1", python = "^3.6" }
-flake8 = "*"
-isort = "^5.7"
-bandit = "*"
-mypy = { version = "*", optional = true }
+recommonmark = "*"
+toml = "*"
+sphinx-click = "*"
 
 [tool.poetry.extras]
 mypy = ["mypy"]
-docs = ["sphinx", "sphinx-autobuild", "sphinx-rtd-theme", "sphinxcontrib-apidoc", "sphinx-autodoc-typehints"]
 vlfeat = ["Cython", "cyvlfeat"]
+docs = [
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx-rtd-theme",
+    "sphinxcontrib-apidoc",
+    "sphinx-autodoc-typehints",
+    "recommonmark",
+    "toml",
+    "sphinx-click",
+]
 
 [tool.black]
 line-length = 120
