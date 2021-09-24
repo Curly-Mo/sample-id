@@ -46,6 +46,6 @@ poetry run tox
 ### Docker
 To run with docker
 ```console
-docker build -t Sample ID .
+docker build -t sample_id .
 docker run sample_id:latest sample_id --help
 ```
