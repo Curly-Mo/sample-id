@@ -32,7 +32,10 @@ after_success:
   - |
     export TAG=$(poetry version --short --no-interaction)
     echo $TAG
+    git config --local user.name "Colin"
+    git config --local user.email "colin@colin.fake"
     git tag $TAG
+    git push --tags
 
 
 notifications:
