@@ -48,9 +48,7 @@ class SiftFingerprint(fingerprint.Fingerprint):
         # logger.info('{}: Trimming silence...'.format(audio_path))
         # y = np.concatenate([[0], np.trim_zeros(y), [0]])
         logger.info("{}: Generating Spectrogram...".format(self.id))
-        specgram = audio.cqtgram(
-            y, sr, hop_length=hop_length, octave_bins=octave_bins, n_octaves=n_octaves, fmin=fmin
-        )
+        specgram = audio.cqtgram(y, sr, hop_length=hop_length, octave_bins=octave_bins, n_octaves=n_octaves, fmin=fmin)
         # s = audio.chromagram(y, hop_length=256, n_fft=4096, n_chroma=36)
         keypoints, descriptors = self.sift_spectrogram(specgram, id=self.id, height=octave_bins * n_octaves, **kwargs)
         return keypoints, descriptors, specgram

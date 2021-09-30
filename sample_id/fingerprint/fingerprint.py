@@ -19,7 +19,11 @@ def from_file(audio_path, id, sr, hop_length=512, feature="sift"):
 def load(filepath: str):
     with np.load(filepath) as data:
         return Fingerprint(
-            data["keypoints"], data["descriptors"], data["id"].item(), data["sr"].item(), data["hop"].item()
+            data["keypoints"],
+            data["descriptors"],
+            data["id"].item(),
+            data["sr"].item(),
+            data["hop"].item(),
         )
 
 
@@ -90,7 +94,13 @@ def save_fingerprints(fingerprints, filepath: str, compress=True):
         save_fn = np.savez_compressed
     else:
         save_fn = np.savez
-    save_fn(filepath, keypoints=keypoints, descriptors=descriptors, index_to_id=index_to_id, index_to_ms=index_to_ms)
+    save_fn(
+        filepath,
+        keypoints=keypoints,
+        descriptors=descriptors,
+        index_to_id=index_to_id,
+        index_to_ms=index_to_ms,
+    )
 
 
 def load_fingerprints(filepath: str):
@@ -129,4 +139,3 @@ class LazyFingerprints(Fingerprints):
     @property
     def keypoints(self):
         return self.data["keypoints"]
-

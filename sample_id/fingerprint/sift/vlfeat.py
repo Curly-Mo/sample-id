@@ -30,12 +30,20 @@ class SiftVlfeat(SiftFingerprint):
         #     keypoint_objs.append(Keypoint(*keypoint, source=id))
 
         # swap x and y columns because cyvlfeat puts y before x
-        keypoints[:, [0,1]] = keypoints[:, [1,0]]
+        keypoints[:, [0, 1]] = keypoints[:, [1, 0]]
 
         return keypoints, descriptors
 
     def sift(
-        self, S, contrast_thresh=0.1, edge_thresh=100, levels=3, magnif=3, window_size=2, first_octave=0, **kwargs
+        self,
+        S,
+        contrast_thresh=0.1,
+        edge_thresh=100,
+        levels=3,
+        magnif=3,
+        window_size=2,
+        first_octave=0,
+        **kwargs,
     ):
         # Scale to 0-255
         I = 255 - (S - S.min()) / (S.max() - S.min()) * 255

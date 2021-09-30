@@ -40,7 +40,12 @@ class Model:
 
 def cqtgram(y, hop_length=512, octave_bins=24, n_octaves=8, fmin=40, sr=22050):
     S = librosa.core.constantq.cqt(
-        y, sr=sr, hop_length=hop_length, bins_per_octave=octave_bins, n_bins=octave_bins * n_octaves, fmin=fmin
+        y,
+        sr=sr,
+        hop_length=hop_length,
+        bins_per_octave=octave_bins,
+        n_bins=octave_bins * n_octaves,
+        fmin=fmin,
     )
     S = librosa.logamplitude(S, ref_power=np.max)
     # S = librosa.core.spectrum.stft(y, win_length=2048, hop_length=hop_length)
@@ -82,7 +87,10 @@ def remove_edge_keypoints(keypoints, descriptors, S):
     start = next((index for index, frame in enumerate(S.T) if all(value > -80 for value in frame)), 0) + 8
     end = (
         S.shape[1]
-        - next((index for index, frame in enumerate(reversed(S.T)) if all(value > -80 for value in frame)), S.shape[1])
+        - next(
+            (index for index, frame in enumerate(reversed(S.T)) if all(value > -80 for value in frame)),
+            S.shape[1],
+        )
         - 8
     )
     out_kp = []
@@ -97,7 +105,10 @@ def remove_edge_keypoints(keypoints, descriptors, S):
 
 def sift(S, contrast_thresh=0.01, edge_thresh=5, n_octave_layers=3, sigma=1.6):
     sift = cv2.SIFT(
-        contrastThreshold=contrast_thresh, edgeThreshold=edge_thresh, nOctaveLayers=n_octave_layers, sigma=sigma
+        contrastThreshold=contrast_thresh,
+        edgeThreshold=edge_thresh,
+        nOctaveLayers=n_octave_layers,
+        sigma=sigma,
     )
     keypoints, descriptors = sift.detectAndCompute(S, None)
     return keypoints, descriptors
@@ -275,7 +286,19 @@ def plot_keypoint_image(I, hop_length, octave_bins, fmin, title, sr=22050, xtick
     if cbar:
         cbar = plt.colorbar(format="%+2.0f dB", ticks=np.linspace(0, 255, 11))
         cbar.ax.set_yticklabels(
-            ["-80 dB", "-72 dB", "-64 dB", "-56 dB", "-48 dB", "-40 dB", "-32 dB", "-24 dB", "-16 dB", "-8 dB", "+0 dB"]
+            [
+                "-80 dB",
+                "-72 dB",
+                "-64 dB",
+                "-56 dB",
+                "-48 dB",
+                "-40 dB",
+                "-32 dB",
+                "-24 dB",
+                "-16 dB",
+                "-8 dB",
+                "+0 dB",
+            ]
         )
     plt.show(block=False)
 

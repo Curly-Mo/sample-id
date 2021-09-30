@@ -81,7 +81,13 @@ class Result(object):
 
 
 def filter_matches(
-    matches, abs_thresh=None, ratio_thresh=None, cluster_dist=20, cluster_size=1, match_orientation=True, ordered=False
+    matches,
+    abs_thresh=None,
+    ratio_thresh=None,
+    cluster_dist=20,
+    cluster_size=1,
+    match_orientation=True,
+    ordered=False,
 ):
     logger.info("Filtering nearest neighbors down to actual matched samples")
     if match_orientation:
@@ -341,7 +347,13 @@ def plot_clusters(specgram, clusters, spectrograms, settings, title, plot_all_kp
     cols = len({cluster[0].neighbors[0].kp.source for cluster in clusters})
     ax1 = fig.add_subplot(rows, cols, (1, cols))
     plot_spectrogram(
-        specgram, settings["hop_length"], settings["octave_bins"], settings["fmin"], title, sr=settings["sr"], cbar=True
+        specgram,
+        settings["hop_length"],
+        settings["octave_bins"],
+        settings["fmin"],
+        title,
+        sr=settings["sr"],
+        cbar=True,
     )
 
     if isinstance(spectrograms, str):
@@ -583,7 +595,8 @@ def query_track(
             plot_clusters(specgram, clusters, spectrograms, settings, str(track), plot_all_kp, kp)
         plt.savefig(
             "{}_{}.pdf".format(
-                os.path.join("plots", str(track)), datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                os.path.join("plots", str(track)),
+                datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
             ),
             format="pdf",
             figsize=(1920, 1080),
