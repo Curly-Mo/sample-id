@@ -26,7 +26,12 @@ def spectral_peaks(audio_path, hop_length, octave_bins=24, n_octaves=7, wn=0.5, 
     y, sr = librosa.load(audio_path)
     logger.info("{}: Generating Spectrogram...".format(audio_path))
     S = librosa.core.constantq.cqt(
-        y, sr=22050, hop_length=hop_length, bins_per_octave=octave_bins, n_bins=octave_bins * n_octaves, fmin=20
+        y,
+        sr=22050,
+        hop_length=hop_length,
+        bins_per_octave=octave_bins,
+        n_bins=octave_bins * n_octaves,
+        fmin=20,
     )
     S = librosa.logamplitude(S, ref_power=np.max)
 

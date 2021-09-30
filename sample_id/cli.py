@@ -29,7 +29,19 @@ def cli(ctx, verbose):
 @click.option("--contrast-thresh", type=click.FLOAT, default=5, help="Contrast threshold for SIFT detector")
 @click.option("--save", type=click.Path(), default=None, help="Location to save model to disk")
 @click.option("--save-spec/--no-save-spec", default=False, help="Save spectrograms with model")
-def train(tracks, hop_length, octave_bins, n_octaves, fmin, sr, algorithm, dedupe, contrast_thresh, save, save_spec):
+def train(
+    tracks,
+    hop_length,
+    octave_bins,
+    n_octaves,
+    fmin,
+    sr,
+    algorithm,
+    dedupe,
+    contrast_thresh,
+    save,
+    save_spec,
+):
     return main.train_keypoints_for_paths(
         tracks,
         hop_length=hop_length,
@@ -53,8 +65,18 @@ def train(tracks, hop_length, octave_bins, n_octaves, fmin, sr, algorithm, dedup
 @click.option("--abs-thresh", type=click.FLOAT, default=None, help="Absolute threshold for filtering matches")
 @click.option("--ratio-thresh", type=click.FLOAT, default=None, help="Ratio threshold for filtering matches")
 @click.option("--cluster-dist", type=click.FLOAT, default=1.0, help="Time in seconds for clustering matches")
-@click.option("--cluster-size", type=click.FLOAT, default=3, help="Minimum cluster size to be considered a sample")
-@click.option("--match-orientation", is_flag=True, default=False, help="Remove matches with differing orientations")
+@click.option(
+    "--cluster-size",
+    type=click.FLOAT,
+    default=3,
+    help="Minimum cluster size to be considered a sample",
+)
+@click.option(
+    "--match-orientation",
+    is_flag=True,
+    default=False,
+    help="Remove matches with differing orientations",
+)
 @click.option("--plot/--no-plot", default=True, help="Plot results")
 @click.option("--plot-all-kp/--no-plot-all-kp", default=False, help="Plot all keypoints on spectrograms")
 @click.option("--save/--no-save", default=False, help="Save plot")
