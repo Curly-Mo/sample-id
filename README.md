@@ -1,6 +1,6 @@
 # Sample ID
 
-[![Build Status](https://travis-ci.com/Curly-Mo/sample-id.svg?branch=master)](https://travis-ci.com/Curly-Mo/sample-id)
+[![Build Status](https://app.travis-ci.com/Curly-Mo/sample-id.svg?branch=master)](https://app.travis-ci.com/Curly-Mo/sample-id)
 [![Coverage](https://coveralls.io/repos/github/Curly-Mo/sample-id/badge.svg)](https://coveralls.io/github/Curly-Mo/sample-id)
 [![Documentation](https://readthedocs.org/projects/sample-id/badge/?version=latest)](https://sample-id.readthedocs.org/en/latest/?badge=latest)
 [![PyPI](https://img.shields.io/pypi/v/sample-id.svg)](https://pypi.python.org/pypi/sample-id)
