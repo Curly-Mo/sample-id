@@ -30,7 +30,9 @@ after_success:
   #     git tag $TAG
   #   fi
   - |
+    pip install poetry
     export TAG=${poetry version --short --no-interaction}
+    echo $TAG
     git tag $TAG
 
 
