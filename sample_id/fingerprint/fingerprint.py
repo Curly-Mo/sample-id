@@ -86,6 +86,7 @@ class Fingerprint:
 
 
 def save_fingerprints(fingerprints, filepath: str, compress=True):
+    # TODO: try structured arrays: https://docs.scipy.org/doc/numpy-1.13.0/user/basics.rec.html
     keypoints = np.vstack([fp.keypoints for fp in fingerprints])
     descriptors = np.vstack([fp.descriptors for fp in fingerprints])
     index_to_id = np.hstack([fp.keypoint_index_ids() for fp in fingerprints])
