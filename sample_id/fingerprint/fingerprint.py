@@ -53,8 +53,8 @@ class Fingerprint:
             self.keypoints = kp
             self.descriptors = desc
 
-    def keypoint_ms(self, kp):
-        return kp[0] * self.hop_length * 1000.0 / self.sr
+    def keypoint_ms(self, kp) -> int:
+        return int(kp[0] * self.hop_length * 1000.0 / self.sr)
 
     def keypoint_index_ids(self):
         return np.repeat(self.id, self.keypoints.shape[0])
@@ -63,8 +63,7 @@ class Fingerprint:
         return np.array([self.keypoint_ms(kp) for kp in self.keypoints])
 
     def save_to_dir(self, dir: str, compress=True):
-        filename = f"{self.id}.npz"
-        filepath = os.path.join(dir, filename)
+        filepath = os.path.join(dir, self.id)
         self.save(filepath)
 
     def save(self, filepath: str, compress=True):
@@ -83,32 +82,51 @@ class Fingerprint:
 
 
 def save_fingerprints(fingerprints, filepath: str, compress=True):
-    keypoints = np.vstack(fp.keypoints for fp in fingerprints)
-    descriptors = np.vstack(fp.descriptors for fp in fingerprints)
-    ids = np.hstack(np.repeat(fp.id, fp.keypoints.shape[0]) for fp in fingerprints)
+    keypoints = np.vstack([fp.keypoints for fp in fingerprints])
+    descriptors = np.vstack([fp.descriptors for fp in fingerprints])
+    index_to_id = np.hstack([fp.keypoint_index_ids() for fp in fingerprints])
+    index_to_ms = np.hstack([fp.keypoint_index_ms() for fp in fingerprints])
     if compress:
         save_fn = np.savez_compressed
     else:
         save_fn = np.savez
-    save_fn(
-        filepath,
-        keypoints=keypoints,
-        descriptors=descriptors,
-        ids=ids,
-        sr=fingerprints[0].sr,
-        hop=fingerprints[0].hop_length,
-    )
+    save_fn(filepath, keypoints=keypoints, descriptors=descriptors, index_to_id=index_to_id, index_to_ms=index_to_ms)
 
 
 def load_fingerprints(filepath: str):
     with np.load(filepath) as data:
-        return Fingerprints(data["keypoints"], data["descriptors"], data["ids"], data["sr"].item(), data["hop"].item())
+        return Fingerprints(data["keypoints"], data["descriptors"], data["index_to_id"], data["index_to_ms"])
 
 
 class Fingerprints:
-    def __init__(self, keypoints, descriptors, ids, sr, hop_length):
+    def __init__(self, keypoints, descriptors, index_to_id, index_to_ms):
         self.keypoints = keypoints
         self.descriptors = descriptors
-        self.ids = ids
-        self.sr = sr
-        self.hop_length = hop_length
+        self.index_to_id = index_to_id
+        self.index_to_ms = index_to_ms
+
+
+class LazyFingerprints(Fingerprints):
+    def __init__(self, npz_filepath: str):
+        self.data = np.load(npz_filepath, mmap_mode="r")
+
+    @property
+    def keypoints(self):
+        return self.data["keypoints"]
+
+    @property
+    def descriptors(self):
+        return self.data["descriptors"]
+
+    @property
+    def index_to_id(self):
+        return self.data["index_to_id"]
+
+    @property
+    def index_to_ms(self):
+        return self.data["index_to_ms"]
+
+    @property
+    def keypoints(self):
+        return self.data["keypoints"]
+
