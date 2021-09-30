@@ -19,7 +19,9 @@ Submodules
    sample_id.ann
    sample_id.audio
    sample_id.cli
+   sample_id.deprecated_main
    sample_id.hough
+   sample_id.io
    sample_id.main
    sample_id.trackio
 

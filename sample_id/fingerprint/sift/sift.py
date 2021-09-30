@@ -23,36 +23,33 @@ class Keypoint(object):
         return np.array([self.x, self.y, self.scale, self.orientation])
 
 
-def from_file(audio_path, sr, id, settings, implementation="vlfeat"):
+def from_file(audio_path, id, sr, hop_length=512, implementation="vlfeat"):
     if implementation == "vlfeat":
         from sample_id.fingerprint.sift import vlfeat
 
-        return vlfeat.SiftVlfeat(audio_path, sr, id, settings)
+        return vlfeat.SiftVlfeat(audio_path, id, sr, hop_length)
     else:
         raise NotImplementedError(implementation)
 
 
 class SiftFingerprint(fingerprint.Fingerprint):
-    def __init__(self, audio_path, sr, id, settings, implementation="vlfeat"):
-        self.audio_path = audio_path
-        self.sr = sr
-        self.id = id.encode("ascii", "ignore")
-        self.settings = settings
-        kp, desc, s = self.sift_file(**settings)
-        self.keypoints = kp
-        self.descriptors = desc
-        self.spectrogram = s
+    def __init__(self, audio_path, id, sr, hop_length, implementation="vlfeat"):
+        kp, desc, s = self.sift_file(audio_path)
+        super().__init__(kp, desc, id, sr, hop_length)
+        # self.spectrogram = s
 
     def sift_spectrogram(self, s, id, height, **kwargs):
         raise NotImplementedError
 
-    def sift_file(self, hop_length=512, octave_bins=24, n_octaves=8, fmin=40, **kwargs):
-        logger.info("{}: Loading signal into memory...".format(self.audio_path.encode("ascii", "ignore")))
-        y, sr = librosa.load(self.audio_path, sr=self.sr)
+    def sift_file(self, audio_path, octave_bins=24, n_octaves=8, fmin=40, **kwargs):
+        logger.info("{}: Loading signal into memory...".format(audio_path.encode("ascii", "ignore")))
+        y, sr = librosa.load(audio_path, sr=self.sr)
         # logger.info('{}: Trimming silence...'.format(audio_path))
         # y = np.concatenate([[0], np.trim_zeros(y), [0]])
         logger.info("{}: Generating Spectrogram...".format(self.id))
-        specgram = audio.cqtgram(y, sr, hop_length=hop_length, octave_bins=octave_bins, n_octaves=n_octaves, fmin=fmin)
+        specgram = audio.cqtgram(
+            y, sr, hop_length=self.hop_length, octave_bins=octave_bins, n_octaves=n_octaves, fmin=fmin
+        )
         # s = audio.chromagram(y, hop_length=256, n_fft=4096, n_chroma=36)
         keypoints, descriptors = self.sift_spectrogram(specgram, id=self.id, height=octave_bins * n_octaves, **kwargs)
         return keypoints, descriptors, specgram
@@ -82,4 +79,4 @@ class SiftFingerprint(fingerprint.Fingerprint):
                 out_kp.append(keypoint)
                 out_desc.append(descriptor)
         logger.info("Edge keypoints removed: {}, remaining: {}".format(len(keypoints) - len(out_kp), len(out_kp)))
-        return out_kp, out_desc
+        return np.array(out_kp), np.array(out_desc)

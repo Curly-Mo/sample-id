@@ -1,53 +1,42 @@
 import logging
+import os
+from typing import Optional
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
-def from_file(audio_path, sr, id, settings, feature="sift"):
+def from_file(audio_path, id, sr, hop_length=512, feature="sift"):
     if feature == "sift":
         from sample_id.fingerprint import sift
 
-        return sift.from_file(audio_path, sr, id, settings)
+        return sift.from_file(audio_path, id, sr, hop_length)
     else:
         raise NotImplementedError
 
 
+def load(filepath: str):
+    with np.load(filepath) as data:
+        return Fingerprint(
+            data["keypoints"], data["descriptors"], data["id"].item(), data["sr"].item(), data["hop"].item()
+        )
+
+
 class Fingerprint:
-    _keypoints = NotImplemented
-    _descriptors = NotImplemented
-    _spectrogram = NotImplemented
+    keypoints = NotImplemented
+    descriptors = NotImplemented
+    spectrogram = NotImplemented
+    id = NotImplemented
+    sr = NotImplemented
+    hop_length = NotImplemented
 
-    @property
-    def keypoints(self):
-        if self._keypoints is NotImplemented:
-            raise NotImplementedError
-        return self._keypoints
-
-    @keypoints.setter
-    def keypoints(self, value):
-        self._keypoints = value
-
-    @property
-    def descriptors(self):
-        if self._descriptors is NotImplemented:
-            raise NotImplementedError
-        return self._descriptors
-
-    @descriptors.setter
-    def descriptors(self, value):
-        self._descriptors = value
-
-    @property
-    def spectrogram(self):
-        if self._spectrogram is NotImplemented:
-            raise NotImplementedError
-        return self._spectrogram
-
-    @spectrogram.setter
-    def spectrogram(self, value):
-        self._spectrogram = value
+    def __init__(self, keypoints, descriptors, id, sr, hop_length):
+        self.keypoints = keypoints
+        self.descriptors = descriptors
+        self.id = id
+        self.sr = sr
+        self.hop_length = hop_length
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
@@ -59,7 +48,67 @@ class Fingerprint:
             )
             _, idx = np.unique(b, return_index=True)
             desc = a[sorted(idx)]
-            kp = [k for i, k in enumerate(self.keypoints) if i in idx]
+            kp = np.array([k for i, k in enumerate(self.keypoints) if i in idx])
             logger.info("Removed {} duplicate keypoints".format(a.shape[0] - idx.shape[0]))
             self.keypoints = kp
             self.descriptors = desc
+
+    def keypoint_ms(self, kp):
+        return kp[0] * self.hop_length * 1000.0 / self.sr
+
+    def keypoint_index_ids(self):
+        return np.repeat(self.id, self.keypoints.shape[0])
+
+    def keypoint_index_ms(self):
+        return np.array([self.keypoint_ms(kp) for kp in self.keypoints])
+
+    def save_to_dir(self, dir: str, compress=True):
+        filename = f"{self.id}.npz"
+        filepath = os.path.join(dir, filename)
+        self.save(filepath)
+
+    def save(self, filepath: str, compress=True):
+        if compress:
+            save_fn = np.savez_compressed
+        else:
+            save_fn = np.savez
+        save_fn(
+            filepath,
+            keypoints=self.keypoints,
+            descriptors=self.descriptors,
+            sr=self.sr,
+            hop=self.hop_length,
+            id=self.id,
+        )
+
+
+def save_fingerprints(fingerprints, filepath: str, compress=True):
+    keypoints = np.vstack(fp.keypoints for fp in fingerprints)
+    descriptors = np.vstack(fp.descriptors for fp in fingerprints)
+    ids = np.hstack(np.repeat(fp.id, fp.keypoints.shape[0]) for fp in fingerprints)
+    if compress:
+        save_fn = np.savez_compressed
+    else:
+        save_fn = np.savez
+    save_fn(
+        filepath,
+        keypoints=keypoints,
+        descriptors=descriptors,
+        ids=ids,
+        sr=fingerprints[0].sr,
+        hop=fingerprints[0].hop_length,
+    )
+
+
+def load_fingerprints(filepath: str):
+    with np.load(filepath) as data:
+        return Fingerprints(data["keypoints"], data["descriptors"], data["ids"], data["sr"].item(), data["hop"].item())
+
+
+class Fingerprints:
+    def __init__(self, keypoints, descriptors, ids, sr, hop_length):
+        self.keypoints = keypoints
+        self.descriptors = descriptors
+        self.ids = ids
+        self.sr = sr
+        self.hop_length = hop_length
