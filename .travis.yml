@@ -23,20 +23,10 @@ after_success:
   - pip install coveralls
   - coveralls
   # - |
-  #   if [[ $TRAVIS_BRANCH != $TRAVIS_PULL_REQUEST_BRANCH && $TRAVIS_BRANCH = 'master' ]]; then
-  #     git config --local user.name "YOUR GIT USER NAME"
-  #     git config --local user.email "YOUR GIT USER EMAIL"
-  #     export TAG=${poetry version --short --no-interaction}
-  #     git tag $TAG
-  #   fi
-  - |
-    export TAG=$(poetry version --short --no-interaction)
-    echo $TAG
-    git config --local user.name "Colin"
-    git config --local user.email "colin@colin.fake"
-    git tag $TAG
-    git push --tags
-
+  #   export TAG=$(poetry version --short --no-interaction)
+  #   echo $TAG
+  #   git tag $TAG
+  #   git push --tags
 
 notifications:
   email:
