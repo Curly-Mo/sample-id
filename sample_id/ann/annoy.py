@@ -5,7 +5,6 @@ import annoy
 
 from . import Matcher, MatcherMetadata
 
-
 logger = logging.getLogger(__name__)
 
 

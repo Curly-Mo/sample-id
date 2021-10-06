@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import abc
-import os
 import logging
-from typing import Iterable, Optional
+import os
 import tempfile
 import zipfile
+from typing import Iterable, Optional
 
 import numpy as np
-from sample_id.fingerprint import Fingerprint
 
+from sample_id.fingerprint import Fingerprint
 
 logger = logging.getLogger(__name__)
 
