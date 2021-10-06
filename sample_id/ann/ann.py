@@ -53,12 +53,10 @@ class Matcher(abc.ABC):
         if not self.meta.hop_length:
             self.meta.hop_length = fingerprint.hop_length
         if self.meta.sr != fingerprint.sr:
-            logger.warn("Can't add fingerprint with sr={}, must equal matcher sr={}", fingerprint.sr, self.meta.sr)
+            logger.warn(f"Can't add fingerprint with sr={fingerprint.sr}, must equal matcher sr={self.meta.sr}")
         if self.meta.hop_length != fingerprint.hop_length:
             logger.warn(
-                "Can't add fingerprint with hop_length={}, must equal matcher hop_length={}",
-                fingerprint.hop_length,
-                self.meta.hop_length,
+                f"Can't add fingerprint with hop_length={fingerprint.hop_length}, must equal matcher hop_length={self.meta.hop_length}"
             )
         return True
 
