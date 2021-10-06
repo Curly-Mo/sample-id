@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   sample_id.ann
    sample_id.fingerprint
 
 Submodules
@@ -16,9 +17,9 @@ Submodules
    :maxdepth: 4
 
    sample_id.analysis
-   sample_id.ann
    sample_id.audio
    sample_id.cli
+   sample_id.deprecated_ann
    sample_id.deprecated_main
    sample_id.hough
    sample_id.io
