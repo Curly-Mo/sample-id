@@ -12,8 +12,8 @@ class AnnoyMatcher(Matcher):
     """Nearest neighbor matcher using annoy."""
 
     def __init__(self, metadata: MatcherMetadata):
-        metadata.metric = metadata.metric or "euclidean"
-        metadata.n_features = metadata.n_features or 128
+        metadata.metric = vars(metadata).get("metric", "euclidean")
+        metadata.n_features = vars(metadata).get("n_features", 128)
         metadata.n_trees = vars(metadata).get("n_trees", -1)
         metadata.n_jobs = vars(metadata).get("n_jobs", -1)
         super().__init__(metadata)
@@ -39,11 +39,12 @@ class AnnoyMatcher(Matcher):
         if self.on_disk:
             logger.info(f"Annoy index already built on disk at {self.on_disk}.")
             return self.on_disk
-        logger.info(f"Saving matcher model to {tmp_model_path}.")
+        logger.info(f"Saving matcher model to {filepath}.")
         self.model.save(filepath)
         return filepath
 
     def load_model(self, filepath: str) -> None:
         logger.info(f"Loading Annoy Index from {filepath}...")
         self.model.load(filepath)
+        self.built = True
         return self.model

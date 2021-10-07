@@ -29,17 +29,26 @@ class Matcher(abc.ABC):
 
     @classmethod
     def create(cls, sr: Optional[int] = None, hop_length: Optional[int] = None, **kwargs) -> Matcher:
+        """Create an instance, pass any kwargs needed by the subclass."""
         meta = MatcherMetadata(sr=sr, hop_length=hop_length, **kwargs)
         return cls(meta)
 
     @classmethod
-    def from_fingerprint(cls, fp: Fingerprint) -> Matcher:
-        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length)
-        matcher.add_fingerprint(fp)
-        return matcher
+    def from_fingerprint(cls, fp: Fingerprint, **kwargs) -> Matcher:
+        """Useful for determining metadata for the Matcher based on the data being added."""
+        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length, **kwargs)
+        return matcher.add_fingerprint(fp, **kwargs)
+
+    @classmethod
+    def from_fingerprints(cls, fingerprints: Iterable[Fingerprint], **kwargs) -> Matcher:
+        """My data is small, just create and train the entire matcher."""
+        fp = fingerprints[0]
+        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length, **kwargs)
+        return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @abc.abstractmethod
     def init_model(self) -> Any:
+        """Initialize the model."""
         pass
 
     def can_add_fingerprint(self, fingerprint: Fingerprint) -> Boolean:
@@ -56,9 +65,11 @@ class Matcher(abc.ABC):
             )
         return True
 
-    def add_fingerprint(self, fingerprint: Fingerprint) -> Matcher:
+    def add_fingerprint(self, fingerprint: Fingerprint, dedupe=True) -> Matcher:
         """Add a Fingerprint to the matcher."""
         if self.can_add_fingerprint(fingerprint):
+            if dedupe:
+                fingerprint.remove_similar_keypoints()
             logger.info(f"Adding {fingerprint} to index.")
             self.meta.index_to_id = np.hstack([self.meta.index_to_id, fingerprint.keypoint_index_ids()])
             self.meta.index_to_ms = np.hstack([self.meta.index_to_ms, fingerprint.keypoint_index_ms()])
@@ -68,10 +79,10 @@ class Matcher(abc.ABC):
                 self.index += 1
         return self
 
-    def add_fingerprints(self, fingerprints: Iterable[Fingerprint]) -> Matcher:
+    def add_fingerprints(self, fingerprints: Iterable[Fingerprint], **kwargs) -> Matcher:
         """Add Fingerprints to the matcher."""
         for fingerprint in fingerprints:
-            self.add_fingerprint(fingerprint)
+            self.add_fingerprint(fingerprint, **kwargs)
         return self
 
     def save(self, filepath: str, compress: bool = True) -> None:
@@ -113,7 +124,13 @@ class Matcher(abc.ABC):
             matcher.load_model(tmp_model_path)
             return matcher
 
+    @abc.abstractmethod
+    def nearest_neighbors(self, fp: Fingerprint, k: int) -> str:
+        """Save this matcher's model to disk."""
+        pass
+
     def unload(self) -> None:
+        """Unload things from memory and cleanup any temporary files."""
         self.model.unload()
         if "tempdir" in vars(self):
             self.tempdir.cleanup()
