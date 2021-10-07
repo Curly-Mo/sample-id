@@ -18,6 +18,7 @@ class AnnoyMatcher(Matcher):
         metadata.n_jobs = vars(metadata).get("n_jobs", -1)
         super().__init__(metadata)
         self.on_disk = None
+        self.built = False
 
     def init_model(self) -> Any:
         return annoy.AnnoyIndex(self.meta.n_features, metric=self.meta.metric)
@@ -25,6 +26,7 @@ class AnnoyMatcher(Matcher):
     def build(self) -> None:
         logger.info(f"Building Annoy Index with {self.meta}...")
         self.model.build(self.meta.n_trees, self.meta.n_jobs)
+        self.built = True
 
     def on_disk_build(self, filename: str) -> None:
         logger.info(f"Building Annoy Index straight to disk: {filename}...")
@@ -32,7 +34,8 @@ class AnnoyMatcher(Matcher):
         self.on_disk = filename
 
     def save_model(self, filepath: str) -> str:
-        self.build()
+        if not self.built:
+            self.build()
         if self.on_disk:
             logger.info(f"Annoy index already built on disk at {self.on_disk}.")
             return self.on_disk
