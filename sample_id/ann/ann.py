@@ -22,18 +22,14 @@ META_FILENAME: str = "meta.npz"
 class Matcher(abc.ABC):
     """Nearest neighbor matcher that may use one of various implementations under the hood."""
 
-    tempdir = None
-
     def __init__(self, metadata: MatcherMetadata):
         self.index = 0
         self.meta = metadata
         self.model = self.init_model()
 
     @classmethod
-    def create(
-        cls, n_features: int, sr: Optional[int] = None, hop_length: Optional[int] = None, metric: Optional[str] = None
-    ) -> Matcher:
-        meta = MatcherMetadata(n_features=n_features, sr=sr, hop_length=hop_length, metric=metric)
+    def create(cls, sr: Optional[int] = None, hop_length: Optional[int] = None, **kwargs) -> Matcher:
+        meta = MatcherMetadata(sr=sr, hop_length=hop_length, **kwargs)
         return cls(meta)
 
     @classmethod
@@ -83,10 +79,9 @@ class Matcher(abc.ABC):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
             tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
-            logger.info(f"Saving matcher model to {tmp_model_path}.")
             tmp_model_path = self.save_model(tmp_model_path)
             self.meta.save(tmp_meta_path)
-            with zipfile.ZipFile(filepath, "w") as zipf:
+            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
                 logger.info(f"Zipping {tmp_model_path} and {tmp_meta_path} into {zipf.filename}")
                 zipf.write(tmp_model_path, arcname=MATCHER_FILENAME)
                 zipf.write(tmp_meta_path, arcname=META_FILENAME)
@@ -120,7 +115,7 @@ class Matcher(abc.ABC):
 
     def unload(self) -> None:
         self.model.unload()
-        if self.tempdir:
+        if "tempdir" in vars(self):
             self.tempdir.cleanup()
 
 
@@ -129,18 +124,15 @@ class MatcherMetadata:
 
     def __init__(
         self,
-        n_features: Optional[int] = None,
-        metric: Optional[str] = None,
         sr: Optional[int] = None,
         hop_length: Optional[int] = None,
         index_to_id=None,
         index_to_ms=None,
         index_to_kp=None,
+        **kwargs,
     ):
         self.sr = sr
         self.hop_length = hop_length
-        self.n_features = n_features
-        self.metric = metric
         self.index_to_id = index_to_id
         self.index_to_ms = index_to_ms
         self.index_to_kp = index_to_kp
@@ -150,6 +142,8 @@ class MatcherMetadata:
             self.index_to_ms = np.array([], np.uint32)
         if index_to_kp is None:
             self.index_to_kp = np.empty(shape=(0, 4), dtype=np.float32)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def save(self, filepath: str, compress: bool = True) -> None:
         """Save this matcher's metadata to disk."""
@@ -180,3 +174,7 @@ class MatcherMetadata:
                 index_to_ms=data["index_to_ms"],
                 index_to_kp=data["index_to_kp"],
             )
+
+    def __repr__(self):
+        attrs = ",".join(f"{k}={v}" for k, v in vars(self).items() if type(v) in (int, float, bool, str))
+        return f"MatcherMeta({attrs})"
