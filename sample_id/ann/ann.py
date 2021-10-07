@@ -27,43 +27,25 @@ class Matcher(abc.ABC):
         self.meta = metadata
         self.model = self.init_model()
 
-    @classmethod
-    def create(cls, sr: Optional[int] = None, hop_length: Optional[int] = None, **kwargs) -> Matcher:
-        """Create an instance, pass any kwargs needed by the subclass."""
-        meta = MatcherMetadata(sr=sr, hop_length=hop_length, **kwargs)
-        return cls(meta)
-
-    @classmethod
-    def from_fingerprint(cls, fp: Fingerprint, **kwargs) -> Matcher:
-        """Useful for determining metadata for the Matcher based on the data being added."""
-        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length, **kwargs)
-        return matcher.add_fingerprint(fp, **kwargs)
-
-    @classmethod
-    def from_fingerprints(cls, fingerprints: Iterable[Fingerprint], **kwargs) -> Matcher:
-        """My data is small, just create and train the entire matcher."""
-        fp = fingerprints[0]
-        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length, **kwargs)
-        return matcher.add_fingerprints(fingerprints, **kwargs)
-
     @abc.abstractmethod
     def init_model(self) -> Any:
         """Initialize the model."""
         pass
 
-    def can_add_fingerprint(self, fingerprint: Fingerprint) -> Boolean:
-        """Check if fingerprint can be added to matcher."""
-        if not self.meta.sr:
-            self.meta.sr = fingerprint.sr
-        if not self.meta.hop_length:
-            self.meta.hop_length = fingerprint.hop_length
-        if self.meta.sr != fingerprint.sr:
-            logger.warn(f"Can't add fingerprint with sr={fingerprint.sr}, must equal matcher sr={self.meta.sr}")
-        if self.meta.hop_length != fingerprint.hop_length:
-            logger.warn(
-                f"Can't add fingerprint with hop_length={fingerprint.hop_length}, must equal matcher hop_length={self.meta.hop_length}"
-            )
-        return True
+    @abc.abstractmethod
+    def save_model(self, filepath: str) -> str:
+        """Save this matcher's model to disk."""
+        pass
+
+    @abc.abstractmethod
+    def load_model(self, filepath: str) -> Any:
+        """Load this matcher's model from disk."""
+        pass
+
+    @abc.abstractmethod
+    def nearest_neighbors(self, fp: Fingerprint, k: int) -> str:
+        """Save this matcher's model to disk."""
+        pass
 
     def add_fingerprint(self, fingerprint: Fingerprint, dedupe=True) -> Matcher:
         """Add a Fingerprint to the matcher."""
@@ -85,6 +67,20 @@ class Matcher(abc.ABC):
             self.add_fingerprint(fingerprint, **kwargs)
         return self
 
+    def can_add_fingerprint(self, fingerprint: Fingerprint) -> Boolean:
+        """Check if fingerprint can be added to matcher."""
+        if not self.meta.sr:
+            self.meta.sr = fingerprint.sr
+        if not self.meta.hop_length:
+            self.meta.hop_length = fingerprint.hop_length
+        if self.meta.sr != fingerprint.sr:
+            logger.warn(f"Can't add fingerprint with sr={fingerprint.sr}, must equal matcher sr={self.meta.sr}")
+        if self.meta.hop_length != fingerprint.hop_length:
+            logger.warn(
+                f"Can't add fingerprint with hop_length={fingerprint.hop_length}, must equal matcher hop_length={self.meta.hop_length}"
+            )
+        return True
+
     def save(self, filepath: str, compress: bool = True) -> None:
         """Save this matcher to disk."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -97,15 +93,30 @@ class Matcher(abc.ABC):
                 zipf.write(tmp_model_path, arcname=MATCHER_FILENAME)
                 zipf.write(tmp_meta_path, arcname=META_FILENAME)
 
-    @abc.abstractmethod
-    def save_model(self, filepath: str) -> str:
-        """Save this matcher's model to disk."""
-        pass
+    def unload(self) -> None:
+        """Unload things from memory and cleanup any temporary files."""
+        self.model.unload()
+        if "tempdir" in vars(self):
+            self.tempdir.cleanup()
 
-    @abc.abstractmethod
-    def load_model(self, filepath: str) -> Any:
-        """Load this matcher's model from disk."""
-        pass
+    @classmethod
+    def create(cls, sr: Optional[int] = None, hop_length: Optional[int] = None, **kwargs) -> Matcher:
+        """Create an instance, pass any kwargs needed by the subclass."""
+        meta = MatcherMetadata(sr=sr, hop_length=hop_length, **kwargs)
+        return cls(meta)
+
+    @classmethod
+    def from_fingerprint(cls, fp: Fingerprint, **kwargs) -> Matcher:
+        """Useful for determining metadata for the Matcher based on the data being added."""
+        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length, **kwargs)
+        return matcher.add_fingerprint(fp, **kwargs)
+
+    @classmethod
+    def from_fingerprints(cls, fingerprints: Iterable[Fingerprint], **kwargs) -> Matcher:
+        """My data is small, just create and train the entire matcher."""
+        fp = fingerprints[0]
+        matcher = cls.create(fp.descriptors.shape[1], sr=fp.sr, hop_length=fp.hop_length, **kwargs)
+        return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
     def load(cls, filepath: str) -> Matcher:
@@ -123,17 +134,6 @@ class Matcher(abc.ABC):
             matcher.tempdir = tempdir
             matcher.load_model(tmp_model_path)
             return matcher
-
-    @abc.abstractmethod
-    def nearest_neighbors(self, fp: Fingerprint, k: int) -> str:
-        """Save this matcher's model to disk."""
-        pass
-
-    def unload(self) -> None:
-        """Unload things from memory and cleanup any temporary files."""
-        self.model.unload()
-        if "tempdir" in vars(self):
-            self.tempdir.cleanup()
 
 
 class MatcherMetadata:
@@ -165,7 +165,7 @@ class MatcherMetadata:
     def save(self, filepath: str, compress: bool = True) -> None:
         """Save this matcher's metadata to disk."""
         save_fn = np.savez_compressed if compress else np.savez
-        logger.info(f"Saving matcher metadata to {filepath}.")
+        logger.info(f"Saving matcher metadata to {filepath}...")
         save_fn(
             filepath,
             n_features=self.n_features,
@@ -180,9 +180,9 @@ class MatcherMetadata:
     @classmethod
     def load(cls, filepath: str) -> MatcherMetadata:
         """Load this matcher's metadata from disk."""
-        logger.info(f"Loading matcher metadata from {filepath}.")
+        logger.info(f"Loading matcher metadata from {filepath}...")
         with np.load(filepath) as data:
-            return cls(
+            meta = cls(
                 n_features=data["n_features"].item(),
                 metric=data["metric"].item(),
                 sr=data["sr"].item(),
@@ -191,6 +191,8 @@ class MatcherMetadata:
                 index_to_ms=data["index_to_ms"],
                 index_to_kp=data["index_to_kp"],
             )
+            logger.info(f"Loaded metadata: {meta}")
+            return meta
 
     def __repr__(self):
         attrs = ",".join(f"{k}={v}" for k, v in vars(self).items() if type(v) in (int, float, bool, str))
