@@ -42,6 +42,11 @@ class Matcher(abc.ABC):
         """Load this matcher's model from disk."""
         pass
 
+    @abc.abstractmethod
+    def nearest_neighbors(self, fp: Fingerprint, k: int = 1) -> str:
+        """Fetch nearest neighbors to this fingerprint's keypoints."""
+        pass
+
     def add_fingerprint(self, fingerprint: Fingerprint, dedupe=True) -> Matcher:
         """Add a Fingerprint to the matcher."""
         if self.can_add_fingerprint(fingerprint):
@@ -120,9 +125,9 @@ class Matcher(abc.ABC):
             tempdir = tempfile.TemporaryDirectory()
             tmp_model_path = os.path.join(tempdir.name, MATCHER_FILENAME)
             tmp_meta_path = os.path.join(tempdir.name, META_FILENAME)
-            logger.info(f"Extracting matcher model to {tmp_model_path}.")
+            logger.info(f"Extracting matcher model to {tmp_model_path}...")
             zipf.extract(MATCHER_FILENAME, tempdir.name)
-            logger.info(f"Extracting matcher metadata to {tmp_meta_path}.")
+            logger.info(f"Extracting matcher metadata to {tmp_meta_path}...")
             zipf.extract(META_FILENAME, tempdir.name)
             meta = MatcherMetadata.load(tmp_meta_path)
             matcher = cls(meta)
@@ -192,3 +197,15 @@ class MatcherMetadata:
     def __repr__(self):
         attrs = ",".join(f"{k}={v}" for k, v in vars(self).items() if type(v) in (int, float, bool, str))
         return f"MatcherMeta({attrs})"
+
+
+class Match(object):
+    def __init__(self, keypoint, neighbors: Iterable[Neighbor]):
+        self.keypoint = keypoint
+        self.neighbors = neighbors
+
+
+class Neighbor(object):
+    def __init__(self, index: int, distance: float):
+        self.index = index
+        self.distance = distance

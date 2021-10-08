@@ -3,7 +3,7 @@ from typing import Any, Iterable, Optional
 
 import annoy
 
-from . import Matcher, MatcherMetadata
+from . import Matcher, MatcherMetadata, Match, Neighbor
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +49,11 @@ class AnnoyMatcher(Matcher):
         logger.info(f"Building Annoy Index straight to disk: {filename}...")
         self.model.on_disk_build(filename)
         self.on_disk = filename
+
+    def nearest_neighbors(self, fp: Fingerprint, k: int = 1) -> Iterable[Match]:
+        matches = []
+        for kp, desc in zip(fp.keypoints, fp.descriptors):
+            indices, distances = self.model.get_nns_by_vector(desc, k, include_distances=True)
+            kp_neighbors = [Neighbor(index, distance) for index, distance in zip(indices, distances)]
+            matches.append(Match(kp, kp_neighbors)
+        return matches
