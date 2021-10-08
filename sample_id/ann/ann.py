@@ -42,11 +42,6 @@ class Matcher(abc.ABC):
         """Load this matcher's model from disk."""
         pass
 
-    @abc.abstractmethod
-    def nearest_neighbors(self, fp: Fingerprint, k: int) -> str:
-        """Save this matcher's model to disk."""
-        pass
-
     def add_fingerprint(self, fingerprint: Fingerprint, dedupe=True) -> Matcher:
         """Add a Fingerprint to the matcher."""
         if self.can_add_fingerprint(fingerprint):
