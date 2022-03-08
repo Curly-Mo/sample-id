@@ -4,7 +4,8 @@ from typing import Any, Iterable
 import annoy
 
 from sample_id.fingerprint import Fingerprint
-from . import Matcher, MatcherMetadata, Match, Neighbor
+
+from . import Match, Matcher, MatcherMetadata, Neighbor
 
 logger = logging.getLogger(__name__)
 

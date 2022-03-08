@@ -11,6 +11,7 @@ from typing import Any, Iterable, List, Optional, Sequence
 import numpy as np
 
 from sample_id.fingerprint import Fingerprint
+
 from . import hough
 
 logger = logging.getLogger(__name__)
