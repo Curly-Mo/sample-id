@@ -1,9 +1,11 @@
 import logging
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable
 
 import annoy
 
-from . import Matcher, MatcherMetadata
+from sample_id.fingerprint import Fingerprint
+
+from . import Match, Matcher, MatcherMetadata, Neighbor
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +16,7 @@ class AnnoyMatcher(Matcher):
     def __init__(self, metadata: MatcherMetadata):
         metadata.metric = vars(metadata).get("metric", "euclidean")
         metadata.n_features = vars(metadata).get("n_features", 128)
-        metadata.n_trees = vars(metadata).get("n_trees", -1)
+        metadata.n_trees = vars(metadata).get("n_trees", 100)
         metadata.n_jobs = vars(metadata).get("n_jobs", -1)
         super().__init__(metadata)
         self.on_disk = None
@@ -49,3 +51,11 @@ class AnnoyMatcher(Matcher):
         logger.info(f"Building Annoy Index straight to disk: {filename}...")
         self.model.on_disk_build(filename)
         self.on_disk = filename
+
+    def nearest_neighbors(self, fp: Fingerprint, k: int = 1) -> Iterable[Match]:
+        matches = []
+        for kp, desc in zip(fp.keypoints, fp.descriptors):
+            indices, distances = self.model.get_nns_by_vector(desc, k, include_distances=True)
+            kp_neighbors = [Neighbor(index, distance, self.meta) for index, distance in zip(indices, distances)]
+            matches.append(Match(kp, kp_neighbors))
+        return matches
