@@ -14,7 +14,7 @@ class AnnoyMatcher(Matcher):
     def __init__(self, metadata: MatcherMetadata):
         metadata.metric = vars(metadata).get("metric", "euclidean")
         metadata.n_features = vars(metadata).get("n_features", 128)
-        metadata.n_trees = vars(metadata).get("n_trees", -1)
+        metadata.n_trees = vars(metadata).get("n_trees", 100)
         metadata.n_jobs = vars(metadata).get("n_jobs", -1)
         super().__init__(metadata)
         self.on_disk = None
