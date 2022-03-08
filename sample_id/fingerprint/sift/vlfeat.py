@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class SiftVlfeat(SiftFingerprint):
-    def __init__(self, audio_path, id, sr, hop_length, implementation="vlfeat"):
+    def __init__(self, audio_path, id, sr, hop_length):
         super().__init__(audio_path, id, sr, hop_length)
 
     def sift_spectrogram(self, s, id, height, **kwargs):
@@ -43,6 +43,9 @@ class SiftVlfeat(SiftFingerprint):
         magnif=3,
         window_size=2,
         first_octave=0,
+        n_octaves=None,
+        norm_thresh=None,
+        float_descriptors=True,
         **kwargs,
     ):
         # Scale to 0-255
@@ -53,8 +56,12 @@ class SiftVlfeat(SiftFingerprint):
             edge_thresh=edge_thresh,
             magnification=magnif,
             window_size=window_size,
+            n_levels=levels,
             first_octave=first_octave,
+            n_octaves=n_octaves,
+            norm_thresh=norm_thresh,
             compute_descriptor=True,
+            float_descriptors=float_descriptors,
         )
         # Add each keypoint orientation back to descriptors
         # This effectively removes rotation invariance

@@ -9,11 +9,14 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def from_file(audio_path, id, sr, hop_length=512, feature="sift") -> Fingerprint:
+def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False) -> Fingerprint:
     if feature == "sift":
         from . import sift
 
-        return sift.from_file(audio_path, id, sr, hop_length)
+        fp = sift.from_file(audio_path, id, sr, hop_length=hop_length)
+        if dedupe:
+            fp.remove_similar_keypoints()
+        return fp
     else:
         raise NotImplementedError
 
@@ -26,18 +29,20 @@ def load(filepath: str) -> Fingerprint:
             data["id"].item(),
             data["sr"].item(),
             data["hop"].item(),
+            data["is_deduped"].item(),
         )
 
 
 class Fingerprint:
     spectrogram = NotImplemented
 
-    def __init__(self, keypoints, descriptors, id, sr, hop_length):
+    def __init__(self, keypoints, descriptors, id, sr, hop_length, is_deduped=False):
         self.keypoints = keypoints
         self.descriptors = descriptors
         self.id = id
         self.sr = sr
         self.hop_length = hop_length
+        self.is_deduped = is_deduped
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
@@ -53,6 +58,7 @@ class Fingerprint:
             logger.info("Removed {} duplicate keypoints".format(a.shape[0] - idx.shape[0]))
             self.keypoints = kp
             self.descriptors = desc
+            self.is_deduped = True
 
     def keypoint_ms(self, kp) -> int:
         return int(kp[0] * self.hop_length * 1000.0 / self.sr)
@@ -76,6 +82,7 @@ class Fingerprint:
             sr=self.sr,
             hop=self.hop_length,
             id=self.id,
+            is_deduped=self.is_deduped,
         )
 
     def __repr__(self):

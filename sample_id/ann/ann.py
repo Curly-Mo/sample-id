@@ -50,7 +50,7 @@ class Matcher(abc.ABC):
     def add_fingerprint(self, fingerprint: Fingerprint, dedupe=True) -> Matcher:
         """Add a Fingerprint to the matcher."""
         if self.can_add_fingerprint(fingerprint):
-            if dedupe:
+            if dedupe and not fingerprint.is_deduped:
                 fingerprint.remove_similar_keypoints()
             logger.info(f"Adding {fingerprint} to index.")
             self.meta.index_to_id = np.hstack([self.meta.index_to_id, fingerprint.keypoint_index_ids()])
