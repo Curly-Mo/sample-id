@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Iterable, Optional
+from typing import Iterable
 
 import numpy as np
 
@@ -69,9 +69,9 @@ class Fingerprint:
     def keypoint_index_ms(self):
         return np.array([self.keypoint_ms(kp) for kp in self.keypoints], dtype=np.uint32)
 
-    def save_to_dir(self, dir: str, compress=True):
+    def save_to_dir(self, dir: str, compress: bool = True):
         filepath = os.path.join(dir, self.id)
-        self.save(filepath)
+        self.save(filepath, compress=compress)
 
     def save(self, filepath: str, compress: bool = True):
         save_fn = np.savez_compressed if compress else np.savez
@@ -137,7 +137,3 @@ class LazyFingerprints(Fingerprints):
     @property
     def index_to_ms(self):
         return self.data["index_to_ms"]
-
-    @property
-    def keypoints(self):
-        return self.data["keypoints"]
