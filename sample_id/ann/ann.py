@@ -11,6 +11,7 @@ from typing import Any, Iterable, List, Optional, Sequence
 import numpy as np
 
 from sample_id.fingerprint import Fingerprint
+from . import hough
 
 logger = logging.getLogger(__name__)
 
@@ -265,15 +266,11 @@ def filter_matches(
             if not (n1.distance < ratio_thresh * d2):
                 matches.remove(match)
         logger.info("Ratio threshold removed: {}, remaining: {}".format(total - len(matches), len(matches)))
-    # TODO: replace this hackier clustering
     # Only keep when there are multiple within a time cluster
-    clusters = list(cluster_matches(matches, cluster_dist))
-    filtered_clusters = [
-       cluster for cluster in clusters if len(cluster) >= cluster_size
-    ]
-    # TODO: do hough clustering instead
-    # filtered_clusters, clusters = hough.cluster(matches, cluster_size, cluster_dist)
-    # logger.info("Total Clusters: {}, filtered clusters: {}".format(len(clusters), len(filtered_clusters)))
+    # clusters = list(cluster_matches(matches, cluster_dist))
+    # filtered_clusters = [cluster for cluster in clusters if len(cluster) >= cluster_size]
+    filtered_clusters, clusters = hough.cluster(matches, cluster_size, cluster_dist)
+    logger.info("Total Clusters: {}, filtered clusters: {}".format(len(clusters), len(filtered_clusters)))
     if ordered:
         orderedx_clusters = []
         ordered_clusters = []
