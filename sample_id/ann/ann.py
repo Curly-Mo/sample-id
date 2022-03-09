@@ -36,12 +36,12 @@ class Matcher(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def save_model(self, filepath: str) -> str:
+    def save_model(self, filepath: str, **kwargs) -> str:
         """Save this matcher's model to disk."""
         pass
 
     @abc.abstractmethod
-    def load_model(self, filepath: str) -> Any:
+    def load_model(self, filepath: str, **kwargs) -> Any:
         """Load this matcher's model from disk."""
         pass
 
@@ -84,12 +84,12 @@ class Matcher(abc.ABC):
             )
         return True
 
-    def save(self, filepath: str, compress: bool = True) -> None:
+    def save(self, filepath: str, compress: bool = True, **kwargs) -> None:
         """Save this matcher to disk."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
             tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
-            tmp_model_path = self.save_model(tmp_model_path)
+            tmp_model_path = self.save_model(tmp_model_path, **kwargs)
             self.meta.save(tmp_meta_path, compress=compress)
             with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
                 logger.info(f"Zipping {tmp_model_path} and {tmp_meta_path} into {zipf.filename}")
@@ -122,7 +122,7 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str) -> Matcher:
+    def load(cls, filepath: str, **kwargs) -> Matcher:
         """Load a matcher from disk."""
         with zipfile.ZipFile(filepath, "r") as zipf:
             tempdir = tempfile.TemporaryDirectory()
@@ -135,7 +135,7 @@ class Matcher(abc.ABC):
             meta = MatcherMetadata.load(tmp_meta_path)
             matcher = cls(meta)
             matcher.tempdir = tempdir
-            matcher.load_model(tmp_model_path)
+            matcher.load_model(tmp_model_path, **kwargs)
             return matcher
 
 
