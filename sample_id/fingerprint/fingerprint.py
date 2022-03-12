@@ -11,11 +11,11 @@ from sample_id import util
 logger = logging.getLogger(__name__)
 
 
-def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False) -> Fingerprint:
+def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False, **kwargs) -> Fingerprint:
     if feature == "sift":
         from . import sift
 
-        fp = sift.from_file(audio_path, id, sr, hop_length=hop_length)
+        fp = sift.from_file(audio_path, id, sr, hop_length=hop_length, **kwargs)
         if dedupe:
             fp.remove_similar_keypoints()
         return fp

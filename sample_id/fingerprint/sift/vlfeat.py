@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 class SiftVlfeat(SiftFingerprint):
-    def __init__(self, audio_path, id, sr, hop_length):
-        super().__init__(audio_path, id, sr, hop_length)
+    def __init__(self, audio_path, id, sr, hop_length, **kwargs):
+        super().__init__(audio_path, id, sr, hop_length, **kwargs)
 
     def sift_spectrogram(self, s, id, height, **kwargs):
         # I = np.flipud(S)
@@ -37,8 +37,8 @@ class SiftVlfeat(SiftFingerprint):
     def sift(
         self,
         S,
-        contrast_thresh=0.1,
-        edge_thresh=100,
+        contrast_thresh=5,
+        edge_thresh=20.0,
         levels=3,
         magnif=3,
         window_size=2,

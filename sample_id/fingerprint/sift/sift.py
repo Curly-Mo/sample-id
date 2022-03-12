@@ -23,19 +23,19 @@ class Keypoint(object):
         return np.array([self.x, self.y, self.scale, self.orientation])
 
 
-def from_file(audio_path, id, sr, hop_length=512, implementation="vlfeat"):
+def from_file(audio_path, id, sr, hop_length=512, implementation="vlfeat", **kwargs):
     if implementation == "vlfeat":
         from sample_id.fingerprint.sift import vlfeat
 
-        return vlfeat.SiftVlfeat(audio_path, id, sr, hop_length)
+        return vlfeat.SiftVlfeat(audio_path, id, sr, hop_length, **kwargs)
     else:
         raise NotImplementedError(implementation)
 
 
 class SiftFingerprint(fingerprint.Fingerprint):
-    def __init__(self, audio_path, id, sr, hop_length):
+    def __init__(self, audio_path, id, sr, hop_length, **kwargs):
         self.id = id
-        kp, desc, s = self.sift_file(audio_path, sr, hop_length)
+        kp, desc, s = self.sift_file(audio_path, sr, hop_length, **kwargs)
         super().__init__(kp, desc, id, sr, hop_length)
         # self.spectrogram = s
 
