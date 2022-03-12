@@ -11,11 +11,11 @@ from sample_id import util
 logger = logging.getLogger(__name__)
 
 
-def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False) -> Fingerprint:
+def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False, **kwargs) -> Fingerprint:
     if feature == "sift":
         from . import sift
 
-        fp = sift.from_file(audio_path, id, sr, hop_length=hop_length)
+        fp = sift.from_file(audio_path, id, sr, hop_length=hop_length, **kwargs)
         if dedupe:
             fp.remove_similar_keypoints()
         return fp
@@ -97,7 +97,7 @@ def save_fingerprints(fingerprints: Iterable[Fingerprint], filepath: str, compre
     keypoints = np.vstack([fp.keypoints for fp in fingerprints])
     descriptors = np.vstack([fp.descriptors for fp in fingerprints])
     index_to_id = np.hstack([fp.keypoint_index_ids() for fp in fingerprints])
-    index_to_ms = np.hstack([fp.keypoint_index_ms() for fp in fingerprints])
+    # index_to_ms = np.hstack([fp.keypoint_index_ms() for fp in fingerprints])
     sr = next(fp.sr for fp in fingerprints)
     hop_length = next(fp.hop_length for fp in fingerprints)
     save_fn = np.savez_compressed if compress else np.savez
@@ -106,7 +106,7 @@ def save_fingerprints(fingerprints: Iterable[Fingerprint], filepath: str, compre
         keypoints=keypoints,
         descriptors=descriptors,
         index_to_id=index_to_id,
-        index_to_ms=index_to_ms,
+        # index_to_ms=index_to_ms,
         sr=sr,
         hop=hop_length,
     )
