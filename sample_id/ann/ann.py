@@ -100,8 +100,8 @@ class Matcher(abc.ABC):
             tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
             tmp_model_path = self.save_model(tmp_model_path, **kwargs)
             self.meta.save(tmp_meta_path, compress=compress)
-            logger.info(f"Model file {filepath} size: {util.filesize(tmp_model_path)}")
-            logger.info(f"Metadata file {filepath} size: {util.filesize(tmp_meta_path)}")
+            logger.info(f"Model file {tmp_model_path} size: {util.filesize(tmp_model_path)}")
+            logger.info(f"Metadata file {tmp_meta_path} size: {util.filesize(tmp_meta_path)}")
             with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
                 logger.info(f"Zipping {tmp_model_path} and {tmp_meta_path} into {zipf.filename}")
                 zipf.write(tmp_model_path, arcname=MATCHER_FILENAME)
