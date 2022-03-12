@@ -1,9 +1,14 @@
 import itertools
+import logging
 import math
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
+
 
 def cluster(matches, cluster_size=3, cluster_dist=20):
+    logger.info("Clustering matches...")
+    logger.debug(f"cluster_dist: {cluster_dist} samples")
     clusters = set()
     votes = ght(matches, cluster_dist)
     for source, bins in votes.items():
@@ -24,7 +29,7 @@ def ght(matches, cluster_dist=20):
     for match in matches:
         ds = round_to(match.keypoint.scale / match.neighbors[0].keypoint.scale, 2)
         d_theta = round_to(match.keypoint.orientation - match.neighbors[0].keypoint.orientation, 0.4)
-        dx = round_to(match.keypoint.x - match.neighbors[0].keypoit.x, 1.5 * dim)
+        dx = round_to(match.keypoint.x - match.neighbors[0].keypoint.x, 1.5 * dim)
         dy = round_to(match.keypoint.y - match.neighbors[0].keypoint.y, 1.5 * dim)
         bins = itertools.product(*(dx, dy))
         for bin in bins:

@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import abc
+import datetime
 import itertools
+import json
 import logging
+import math
 import os
+import statistics
 import tempfile
 import zipfile
+from collections import defaultdict
 from typing import Any, Iterable, List, Optional, Sequence
 
 import numpy as np
 
+from sample_id import util
 from sample_id.fingerprint import Fingerprint
 
 from . import hough
@@ -27,6 +33,7 @@ class Matcher(abc.ABC):
 
     def __init__(self, metadata: MatcherMetadata):
         self.index = 0
+        self.num_items = 0
         self.meta = metadata
         self.model = self.init_model()
 
@@ -36,12 +43,12 @@ class Matcher(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def save_model(self, filepath: str) -> str:
+    def save_model(self, filepath: str, **kwargs) -> str:
         """Save this matcher's model to disk."""
         pass
 
     @abc.abstractmethod
-    def load_model(self, filepath: str) -> Any:
+    def load_model(self, filepath: str, **kwargs) -> Any:
         """Load this matcher's model from disk."""
         pass
 
@@ -62,6 +69,7 @@ class Matcher(abc.ABC):
             for descriptor in fingerprint.descriptors:
                 self.model.add_item(self.index, descriptor)
                 self.index += 1
+            self.num_items += 1
         return self
 
     def add_fingerprints(self, fingerprints: Iterable[Fingerprint], **kwargs) -> Matcher:
@@ -84,17 +92,22 @@ class Matcher(abc.ABC):
             )
         return True
 
-    def save(self, filepath: str, compress: bool = True) -> None:
+    def save(self, filepath: str, compress: bool = True, **kwargs) -> str:
         """Save this matcher to disk."""
         with tempfile.TemporaryDirectory() as tmpdir:
+            logger.info(f"Saving {self} to temporary dir: {tmpdir}")
             tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
             tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
-            tmp_model_path = self.save_model(tmp_model_path)
+            tmp_model_path = self.save_model(tmp_model_path, **kwargs)
             self.meta.save(tmp_meta_path, compress=compress)
+            logger.info(f"Model file {filepath} size: {util.filesize(tmp_model_path)}")
+            logger.info(f"Metadata file {filepath} size: {util.filesize(tmp_meta_path)}")
             with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
                 logger.info(f"Zipping {tmp_model_path} and {tmp_meta_path} into {zipf.filename}")
                 zipf.write(tmp_model_path, arcname=MATCHER_FILENAME)
                 zipf.write(tmp_meta_path, arcname=META_FILENAME)
+        logger.info(f"Zipped file {filepath} size: {util.filesize(filepath)}")
+        return filepath
 
     def unload(self) -> None:
         """Unload things from memory and cleanup any temporary files."""
@@ -122,7 +135,7 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str) -> Matcher:
+    def load(cls, filepath: str, **kwargs) -> Matcher:
         """Load a matcher from disk."""
         with zipfile.ZipFile(filepath, "r") as zipf:
             tempdir = tempfile.TemporaryDirectory()
@@ -135,8 +148,54 @@ class Matcher(abc.ABC):
             meta = MatcherMetadata.load(tmp_meta_path)
             matcher = cls(meta)
             matcher.tempdir = tempdir
-            matcher.load_model(tmp_model_path)
+            matcher.load_model(tmp_model_path, **kwargs)
             return matcher
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.meta})"
+
+    def filter_matches(
+        self,
+        matches: List[Match],
+        abs_thresh=None,
+        ratio_thresh=None,
+        cluster_dist=1.0,
+        cluster_size=3,
+        match_orientation=True,
+        ordered=False,
+    ) -> List[List[Match]]:
+        cluster_sample_dist = int(cluster_dist * self.meta.sr / self.meta.hop_length)
+        return filter_matches(
+            matches,
+            abs_thresh=abs_thresh,
+            ratio_thresh=ratio_thresh,
+            cluster_dist=cluster_sample_dist,
+            cluster_size=cluster_size,
+            match_orientation=match_orientation,
+            ordered=ordered,
+        )
+
+    def find_samples(
+        self,
+        fp: Fingerprint,
+        abs_thresh=None,
+        ratio_thresh=None,
+        cluster_dist=1.0,
+        cluster_size=3,
+        match_orientation=True,
+        ordered=False,
+    ) -> Result:
+        matches = self.nearest_neighbors(fp)
+        clusters = self.filter_matches(
+            matches,
+            abs_thresh=abs_thresh,
+            ratio_thresh=ratio_thresh,
+            cluster_dist=cluster_dist,
+            cluster_size=cluster_size,
+            match_orientation=match_orientation,
+            ordered=ordered,
+        )
+        return Result(fp, clusters)
 
 
 class MatcherMetadata:
@@ -168,7 +227,7 @@ class MatcherMetadata:
     def save(self, filepath: str, compress: bool = True) -> None:
         """Save this matcher's metadata to disk."""
         save_fn = np.savez_compressed if compress else np.savez
-        logger.info(f"Saving matcher metadata to {filepath}...")
+        logger.info(f"Saving metadata {self} to {filepath}...")
         save_fn(
             filepath,
             n_features=self.n_features,
@@ -197,40 +256,118 @@ class MatcherMetadata:
             logger.info(f"Loaded metadata: {meta}")
             return meta
 
-    def __repr__(self):
-        attrs = ",".join(f"{k}={v}" for k, v in vars(self).items() if type(v) in (int, float, bool, str))
-        return f"MatcherMeta({attrs})"
+    def __repr__(self) -> str:
+        return util.class_repr(self)
 
 
-class Match(object):
+class Match:
     def __init__(self, keypoint, neighbors: Sequence[Neighbor]):
         self.keypoint = Keypoint(keypoint)
         self.neighbors = neighbors
 
+    def __repr__(self) -> str:
+        return util.class_repr(self)
 
-class Neighbor(object):
+
+class Neighbor:
     def __init__(self, index: int, distance: float, meta: MatcherMetadata):
         self.index = index
         self.distance = distance
         self.keypoint = Keypoint(meta.index_to_kp[index])
-        self.source_id = meta.index_to_id[index]
+        self.source_id = meta.index_to_id[index].item()
+
+    def __repr__(self) -> str:
+        return util.class_repr(self)
 
 
-class Keypoint(object):
+class Keypoint:
     def __init__(self, kp):
-        self.x = kp[0]
-        self.y = kp[1]
-        self.scale = kp[2]
-        self.orientation = kp[3]
+        self.x = kp[0].item()
+        self.y = kp[1].item()
+        self.scale = kp[2].item()
+        self.orientation = kp[3].item()
         self.kp = kp
+
+    def __repr__(self):
+        return util.class_repr(self)
+
+
+class Sample:
+    def __init__(self, cluster: List[Match], sr, hop_length):
+        deriv_min_x = min(match.keypoint.x for match in cluster)
+        deriv_max_x = max(match.keypoint.x for match in cluster)
+        source_min_x = min(match.neighbors[0].keypoint.x for match in cluster)
+        source_max_x = max(match.neighbors[0].keypoint.x for match in cluster)
+        derivative_start_seconds = deriv_min_x * hop_length / sr
+        derivative_start_time = datetime.timedelta(seconds=derivative_start_seconds)
+        derivative_end_seconds = deriv_max_x * hop_length / sr
+        derivative_end_time = datetime.timedelta(seconds=derivative_end_seconds)
+        source_start_seconds = source_min_x * hop_length / sr
+        source_start_time = datetime.timedelta(seconds=source_start_seconds)
+        source_end_seconds = source_max_x * hop_length / sr
+        source_end_time = datetime.timedelta(seconds=source_end_seconds)
+
+        combos = itertools.combinations(cluster, 2)
+        stretch_factors = [
+            abs(m2.keypoint.x - m1.keypoint.x) / abs(m2.neighbors[0].keypoint.x - m1.neighbors[0].keypoint.x)
+            for m1, m2 in combos
+        ]
+        # TODO: read octave_bins from matcher somehow
+        octave_bins = 24
+        pitch_factors = [(m.neighbors[0].keypoint.y - m.keypoint.y) * 12 / octave_bins for m in cluster]
+
+        self.derivative_start = derivative_start_time
+        self.derivative_end = derivative_end_time
+        self.source_start = source_start_time
+        self.source_end = source_end_time
+        self.pitch_shift = statistics.median(pitch_factors)
+        self.time_stretch = statistics.median(stretch_factors)
+        self.confidence = self.score(cluster)
+        # TODO: for debugging purposes only
+        self.cluster = cluster
+
+    # TODO: do something not dumb here
+    def score(self, cluster: List[Match]) -> float:
+        sigmoid = lambda x: 1 / (1 + math.exp(-x))
+        return sigmoid(len(cluster) / 100.0)
+
+    def as_dict(self) -> dict:
+        d = {k: str(v) if type(v) == datetime.timedelta else v for k, v in util.class_attributes(self, []).items()}
+        d.pop("cluster", None)
+        d
+        return d
+
+    def __repr__(self):
+        return util.class_repr(self)
+
+
+class Result:
+    def __init__(self, fp: Fingerprint, clusters: List[List[Match]]):
+        self.id = fp.id
+        self.sources = defaultdict(list)
+        for cluster in clusters:
+            head = next(m for m in cluster)
+            key = head.neighbors[0].source_id
+            sample = Sample(cluster, fp.sr, fp.hop_length)
+            self.sources[key].append(sample)
+
+    def as_dict(self) -> dict:
+        sources = [
+            {"source": source, "samples": [sample.as_dict() for sample in samples]}
+            for source, samples in self.sources.items()
+        ]
+        return {"id": self.id, "sources": sources}
+
+    def __repr__(self):
+        return util.class_repr(self)
 
 
 def filter_matches(
     matches: List[Match],
     abs_thresh=None,
     ratio_thresh=None,
-    cluster_dist=20,
-    cluster_size=1,
+    cluster_dist=1,
+    cluster_size=3,
     match_orientation=True,
     ordered=False,
 ):
@@ -238,11 +375,11 @@ def filter_matches(
     if match_orientation:
         # Remove matches with differing orientations
         total = len(matches)
-        for match in matches:
+        for match in list(matches):
             orient = match.keypoint.orientation
             while match.neighbors and abs(orient - match.neighbors[0].keypoint.orientation) > 0.2:
                 match.neighbors = match.neighbors[1:]
-            if not match.neighbors == 0:
+            if not match.neighbors:
                 matches.remove(match)
             # elif len(match.neighbors) < 2:
             #     # logger.warn('Orientation check left < 2 neighbors')
@@ -276,14 +413,14 @@ def filter_matches(
         orderedx_clusters = []
         ordered_clusters = []
         for cluster in filtered_clusters:
-            sorted_trainx = sorted(cluster, key=lambda m: m.neighbors[0].kp.x)
-            sorted_queryx = sorted(cluster, key=lambda m: m.query.x)
+            sorted_trainx = sorted(cluster, key=lambda m: m.neighbors[0].keypoint.x)
+            sorted_queryx = sorted(cluster, key=lambda m: m.keypoint.x)
             if sorted_trainx == sorted_queryx:
                 orderedx_clusters.append(cluster)
         logger.info("Total Clusters: {}, orderedx clusters: {}".format(len(clusters), len(orderedx_clusters)))
         for cluster in orderedx_clusters:
-            sorted_trainy = sorted(cluster, key=lambda m: m.neighbors[0].kp.y)
-            sorted_queryy = sorted(cluster, key=lambda m: m.query.y)
+            sorted_trainy = sorted(cluster, key=lambda m: m.neighbors[0].keypoint.y)
+            sorted_queryy = sorted(cluster, key=lambda m: m.keypoint.y)
             if sorted_trainy == sorted_queryy:
                 ordered_clusters.append(cluster)
         logger.info("Total Clusters: {}, ordered clusters: {}".format(len(clusters), len(ordered_clusters)))
@@ -296,21 +433,21 @@ def filter_matches(
 def cluster_matches(matches, cluster_dist):
     class Cluster(object):
         def __init__(self, match):
-            self.min_query = match.query.x
-            self.max_query = match.query.x
-            self.min_train = match.neighbors[0].kp.x
-            self.max_train = match.neighbors[0].kp.x
+            self.min_query = match.keypoint.x
+            self.max_query = match.keypoint.x
+            self.min_train = match.neighbors[0].keypoint.x
+            self.max_train = match.neighbors[0].keypoint.x
             self.matches = [match]
 
         def add(self, match):
-            if match.query.x > self.min_query:
-                self.min_query = match.query.x
-            if match.query.x > self.max_query:
-                self.max_query = match.query.x
-            if match.neighbors[0].kp.x < self.min_train:
-                self.min_train = match.neighbors[0].kp.x
-            if match.neighbors[0].kp.x > self.max_train:
-                self.max_train = match.neighbors[0].kp.x
+            if match.keypoint.x > self.min_query:
+                self.min_query = match.keypoint.x
+            if match.keypoint.x > self.max_query:
+                self.max_query = match.keypoint.x
+            if match.neighbors[0].keypoint.x < self.min_train:
+                self.min_train = match.neighbors[0].keypoint.x
+            if match.neighbors[0].keypoint.x > self.max_train:
+                self.max_train = match.neighbors[0].keypoint.x
             self.matches.append(match)
 
         def merge(self, cluster):
@@ -325,23 +462,23 @@ def cluster_matches(matches, cluster_dist):
             self.matches.extend(cluster.matches)
 
     logger.info("Clustering matches...")
-    logger.info("cluster_dist: {}".format(cluster_dist))
-    matches = sorted(matches, key=lambda m: (m.neighbors[0].kp.source, m.query.x))
+    logger.info(f"cluster_dist: {cluster_dist}")
+    matches = sorted(matches, key=lambda m: (m.neighbors[0].keypoint.source, m.keypoint.x))
     clusters = {}
-    for source, group in itertools.groupby(matches, lambda m: m.neighbors[0].kp.source):
+    for source, group in itertools.groupby(matches, lambda m: m.neighbors[0].keypoint.source):
         for match in group:
             cluster_found = False
             for cluster in clusters.get(source, []):
                 if (
-                    match.query.x >= cluster.min_query - cluster_dist
-                    and match.query.x <= cluster.max_query + cluster_dist
+                    match.keypoint.x >= cluster.min_query - cluster_dist
+                    and match.keypoint.x <= cluster.max_query + cluster_dist
                 ) and (
-                    match.neighbors[0].kp.x >= cluster.min_train - cluster_dist
-                    and match.neighbors[0].kp.x <= cluster.max_train + cluster_dist
+                    match.neighbors[0].keypoint.x >= cluster.min_train - cluster_dist
+                    and match.neighbors[0].keypoint.x <= cluster.max_train + cluster_dist
                 ):
                     if not any(
-                        match.neighbors[0].kp.x == c.neighbors[0].kp.x
-                        and match.neighbors[0].kp.y == c.neighbors[0].kp.y
+                        match.neighbors[0].keypoint.x == c.neighbors[0].keypoint.x
+                        and match.neighbors[0].keypoint.y == c.neighbors[0].keypoint.y
                         for c in cluster.matches
                     ):
                         cluster_found = True
@@ -363,8 +500,10 @@ def cluster_matches(matches, cluster_dist):
                         and cluster.max_train <= c.max_train + cluster_dist
                     )
                 ):
-                    cluster_points = set((m.neighbors[0].kp.x, m.neighbors[0].kp.y) for m in cluster.matches)
-                    c_points = set((m.neighbors[0].kp.x, m.neighbors[0].kp.y) for m in c.matches)
+                    cluster_points = set(
+                        (m.neighbors[0].keypoint.x, m.neighbors[0].keypoint.y) for m in cluster.matches
+                    )
+                    c_points = set((m.neighbors[0].keypoint.x, m.neighbors[0].keypoint.y) for m in c.matches)
                     if cluster_points & c_points:
                         break
                     c.merge(cluster)

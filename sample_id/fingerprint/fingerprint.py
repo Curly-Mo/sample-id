@@ -6,6 +6,8 @@ from typing import Iterable
 
 import numpy as np
 
+from sample_id import util
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,6 +45,7 @@ class Fingerprint:
         self.sr = sr
         self.hop_length = hop_length
         self.is_deduped = is_deduped
+        self.size = len(keypoints)
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
@@ -86,7 +89,7 @@ class Fingerprint:
         )
 
     def __repr__(self):
-        return f"Fingerprint({self.id})"
+        return util.class_repr(self)
 
 
 def save_fingerprints(fingerprints: Iterable[Fingerprint], filepath: str, compress=True):
@@ -95,6 +98,8 @@ def save_fingerprints(fingerprints: Iterable[Fingerprint], filepath: str, compre
     descriptors = np.vstack([fp.descriptors for fp in fingerprints])
     index_to_id = np.hstack([fp.keypoint_index_ids() for fp in fingerprints])
     index_to_ms = np.hstack([fp.keypoint_index_ms() for fp in fingerprints])
+    sr = next(fp.sr for fp in fingerprints)
+    hop_length = next(fp.hop_length for fp in fingerprints)
     save_fn = np.savez_compressed if compress else np.savez
     save_fn(
         filepath,
@@ -102,6 +107,8 @@ def save_fingerprints(fingerprints: Iterable[Fingerprint], filepath: str, compre
         descriptors=descriptors,
         index_to_id=index_to_id,
         index_to_ms=index_to_ms,
+        sr=sr,
+        hop=hop_length,
     )
 
 

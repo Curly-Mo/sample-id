@@ -22,6 +22,7 @@ Submodules
    sample_id.io
    sample_id.main
    sample_id.trackio
+   sample_id.util
 
 Module contents
 ---------------
