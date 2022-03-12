@@ -64,7 +64,7 @@ class Matcher(abc.ABC):
                 fingerprint.remove_similar_keypoints()
             logger.info(f"Adding {fingerprint} to index.")
             self.meta.index_to_id = np.hstack([self.meta.index_to_id, fingerprint.keypoint_index_ids()])
-            self.meta.index_to_ms = np.hstack([self.meta.index_to_ms, fingerprint.keypoint_index_ms()])
+            # self.meta.index_to_ms = np.hstack([self.meta.index_to_ms, fingerprint.keypoint_index_ms()])
             self.meta.index_to_kp = np.vstack([self.meta.index_to_kp, fingerprint.keypoints])
             for descriptor in fingerprint.descriptors:
                 self.model.add_item(self.index, descriptor)
@@ -206,19 +206,19 @@ class MatcherMetadata:
         sr: Optional[int] = None,
         hop_length: Optional[int] = None,
         index_to_id=None,
-        index_to_ms=None,
+        # index_to_ms=None,
         index_to_kp=None,
         **kwargs,
     ):
         self.sr = sr
         self.hop_length = hop_length
         self.index_to_id = index_to_id
-        self.index_to_ms = index_to_ms
+        # self.index_to_ms = index_to_ms
         self.index_to_kp = index_to_kp
         if index_to_id is None:
             self.index_to_id = np.array([], str)
-        if index_to_ms is None:
-            self.index_to_ms = np.array([], np.uint32)
+        # if index_to_ms is None:
+        #     self.index_to_ms = np.array([], np.uint32)
         if index_to_kp is None:
             self.index_to_kp = np.empty(shape=(0, 4), dtype=np.float32)
         for key, value in kwargs.items():
@@ -235,7 +235,7 @@ class MatcherMetadata:
             sr=self.sr,
             hop_length=self.hop_length,
             index_to_id=self.index_to_id,
-            index_to_ms=self.index_to_ms,
+            # index_to_ms=self.index_to_ms,
             index_to_kp=self.index_to_kp,
         )
 
@@ -250,7 +250,7 @@ class MatcherMetadata:
                 sr=data["sr"].item(),
                 hop_length=data["hop_length"].item(),
                 index_to_id=data["index_to_id"],
-                index_to_ms=data["index_to_ms"],
+                # index_to_ms=data["index_to_ms"],
                 index_to_kp=data["index_to_kp"],
             )
             logger.info(f"Loaded metadata: {meta}")
