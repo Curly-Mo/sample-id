@@ -178,6 +178,7 @@ class Matcher(abc.ABC):
     def find_samples(
         self,
         fp: Fingerprint,
+        k: int = 1,
         abs_thresh=None,
         ratio_thresh=None,
         cluster_dist=1.0,
@@ -185,7 +186,7 @@ class Matcher(abc.ABC):
         match_orientation=True,
         ordered=False,
     ) -> Result:
-        matches = self.nearest_neighbors(fp)
+        matches = self.nearest_neighbors(fp, k)
         clusters = self.filter_matches(
             matches,
             abs_thresh=abs_thresh,
@@ -322,14 +323,14 @@ class Sample:
         self.source_end = source_end_time
         self.pitch_shift = statistics.median(pitch_factors)
         self.time_stretch = statistics.median(stretch_factors)
-        self.confidence = self.score(cluster)
+        self.confidence = self.score(cluster, self.pitch_shift, self.time_stretch)
         # TODO: for debugging purposes only
         self.cluster = cluster
 
     # TODO: do something not dumb here
-    def score(self, cluster: List[Match]) -> float:
-        sigmoid = lambda x: 1 / (1 + math.exp(-x))
-        return sigmoid(len(cluster) / 100.0)
+    def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
+        sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
+        return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 
     def as_dict(self) -> dict:
         d = {k: str(v) if type(v) == datetime.timedelta else v for k, v in util.class_attributes(self, []).items()}
