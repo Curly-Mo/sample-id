@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Iterable, List, Optional, Sequence
 import abc
@@ -23,14 +25,20 @@ logger = logging.getLogger(__name__)
 class HiveMatcher(Matcher):
     """A wrapper around a list of Matchers so that they act like a single Matcher (for inference only)."""
 
-    def __init__(self, matchers: Sequence[Matcher]):
-        self.matchers = matchers
+    def __init__(self, matchers: List[Matcher]):
         sr = next((matcher.meta.sr for matcher in matchers), None)
         hop_length = next((matcher.meta.hop_length for matcher in matchers), None)
         for matcher in matchers:
             if matcher.meta.sr != sr or matcher.meta.hop_length != hop_length:
                 raise ValueError(f"Hive must all have the same sr and hop_length, can't add {matcher}")
         self.meta = MatcherMetadata(sr=sr, hop_length=hop_length)
+        self.matchers = matchers
+
+    def add_matcher(self, matcher: Matcher) -> HiveMatcher:
+        if matcher.meta.sr != self.meta.sr or matcher.meta.hop_length != self.meta.hop_length:
+            raise ValueError(f"Hive must all have the same sr and hop_length, can't add {matcher}")
+        self.matchers.append(matcher)
+        return self
 
     def init_model(self) -> Any:
         raise NotImplementedError(f"Don't do this.")
