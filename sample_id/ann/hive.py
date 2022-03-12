@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-import logging
-from typing import Any, Iterable, List, Optional, Sequence
 import abc
 import datetime
 import itertools
 import json
 import logging
 import math
+import operator
 import os
 import statistics
 import tempfile
 import zipfile
-import operator
+from typing import Any, Iterable, List, Optional, Sequence
 
 from sample_id.fingerprint import Fingerprint
 
