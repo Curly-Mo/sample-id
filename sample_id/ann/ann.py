@@ -330,7 +330,9 @@ class Sample:
     # TODO: do something not dumb here
     def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
-        return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
+        distances = [match.neighbors[0].distance for match in cluster]
+        return sigmoid(len(cluster) - 3) * (1 - statistics.mean(distances))
+        # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 
     def as_dict(self) -> dict:
         d = {k: str(v) if type(v) == datetime.timedelta else v for k, v in util.class_attributes(self, []).items()}
