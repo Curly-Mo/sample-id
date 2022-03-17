@@ -39,7 +39,7 @@ class SiftFingerprint(fingerprint.Fingerprint):
         super().__init__(kp, desc, id, sr, hop_length)
         # self.spectrogram = s
 
-    def sift_spectrogram(self, s, id, height, **kwargs):
+    def sift_spectrogram(self, s, id, **kwargs):
         raise NotImplementedError
 
     def sift_file(self, audio_path, sr, hop_length, octave_bins=36, n_octaves=6, fmin=41.2, **kwargs):
@@ -69,8 +69,8 @@ class SiftFingerprint(fingerprint.Fingerprint):
             ),
             0,
         )
-        start = start + specgram.shape[0] / 4
-        end = end - specgram.shape[0] / 4
+        start = start + height / 16
+        end = end - height / 4
         out_kp = []
         out_desc = []
         for keypoint, descriptor in zip(keypoints, descriptors):
