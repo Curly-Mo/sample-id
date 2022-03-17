@@ -35,7 +35,7 @@ class SiftVlfeat(SiftFingerprint):
         self,
         S,
         contrast_thresh=5,
-        edge_thresh=20.0,
+        edge_thresh=5.0,
         levels=3,
         magnif=3,
         window_size=2,
