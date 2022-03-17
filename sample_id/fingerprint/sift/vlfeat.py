@@ -42,7 +42,7 @@ class SiftVlfeat(SiftFingerprint):
         first_octave=0,
         n_octaves=None,
         norm_thresh=None,
-        float_descriptors=True,
+        float_descriptors=False,
         **kwargs,
     ):
         # Scale to 0-255
