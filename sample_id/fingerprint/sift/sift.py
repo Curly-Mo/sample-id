@@ -42,7 +42,7 @@ class SiftFingerprint(fingerprint.Fingerprint):
     def sift_spectrogram(self, s, id, height, **kwargs):
         raise NotImplementedError
 
-    def sift_file(self, audio_path, sr, hop_length, octave_bins=24, n_octaves=8, fmin=40, **kwargs):
+    def sift_file(self, audio_path, sr, hop_length, octave_bins=36, n_octaves=6, fmin=41.2, **kwargs):
         logger.info("{}: Loading signal into memory...".format(audio_path.encode("ascii", "ignore")))
         y, sr = librosa.load(audio_path, sr=sr)
         # logger.info('{}: Trimming silence...'.format(audio_path))
@@ -51,12 +51,10 @@ class SiftFingerprint(fingerprint.Fingerprint):
         specgram = audio.cqtgram(y, sr, hop_length=hop_length, octave_bins=octave_bins, n_octaves=n_octaves, fmin=fmin)
         # s = audio.chromagram(y, hop_length=256, n_fft=4096, n_chroma=36)
         keypoints, descriptors = self.sift_spectrogram(specgram, id=self.id, **kwargs)
-        keypoints, descriptors = self.remove_edge_keypoints(
-            keypoints, descriptors, specgram, hop_length, octave_bins * n_octaves
-        )
+        keypoints, descriptors = self.remove_edge_keypoints(keypoints, descriptors, specgram, octave_bins * n_octaves)
         return keypoints, descriptors, specgram
 
-    def remove_edge_keypoints(self, keypoints, descriptors, specgram, hop_length, height):
+    def remove_edge_keypoints(self, keypoints, descriptors, specgram, height):
         logger.info(f"{self.id}: Removing edge keypoints...")
         min_value = np.min(specgram)
         start = next(
@@ -71,8 +69,8 @@ class SiftFingerprint(fingerprint.Fingerprint):
             ),
             0,
         )
-        start = start + hop_length / 2
-        end = end - hop_length / 2
+        start = start + specgram.shape[0] / 4
+        end = end - specgram.shape[0] / 4
         out_kp = []
         out_desc = []
         for keypoint, descriptor in zip(keypoints, descriptors):
