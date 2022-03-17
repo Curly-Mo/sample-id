@@ -49,7 +49,7 @@ class Fingerprint:
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
-            logger.info("Removing duplicate/similar keypoints...")
+            logger.info(f"{self.id}: Removing duplicate/similar keypoints...")
             a = np.array(self.descriptors)
             rounding_factor = 10
             b = np.ascontiguousarray((a // rounding_factor) * rounding_factor).view(
@@ -58,7 +58,7 @@ class Fingerprint:
             _, idx = np.unique(b, return_index=True)
             desc = a[sorted(idx)]
             kp = np.array([k for i, k in enumerate(self.keypoints) if i in idx])
-            logger.info("Removed {} duplicate keypoints".format(a.shape[0] - idx.shape[0]))
+            logger.info(f"{self.id}: Removed {a.shape[0] - idx.shape[0]} duplicate keypoints")
             self.keypoints = kp
             self.descriptors = desc
             self.is_deduped = True
