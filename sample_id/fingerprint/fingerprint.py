@@ -32,13 +32,14 @@ def load(filepath: str) -> Fingerprint:
             data["sr"].item(),
             data["hop"].item(),
             data["is_deduped"].item(),
+            data["octave_bins"].item(),
         )
 
 
 class Fingerprint:
     spectrogram = NotImplemented
 
-    def __init__(self, keypoints, descriptors, id, sr, hop_length, is_deduped=False):
+    def __init__(self, keypoints, descriptors, id, sr, hop_length, is_deduped=False, octave_bins=None):
         self.keypoints = keypoints
         self.descriptors = descriptors
         self.id = id
@@ -46,6 +47,7 @@ class Fingerprint:
         self.hop_length = hop_length
         self.is_deduped = is_deduped
         self.size = len(keypoints)
+        self.octave_bins = octave_bins
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
@@ -86,6 +88,7 @@ class Fingerprint:
             hop=self.hop_length,
             id=self.id,
             is_deduped=self.is_deduped,
+            octave_bins=self.octave_bins,
         )
 
     def __repr__(self):

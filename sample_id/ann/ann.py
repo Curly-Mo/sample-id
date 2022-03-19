@@ -314,8 +314,8 @@ class Sample:
             for m1, m2 in combos
         ]
         # TODO: read octave_bins from matcher somehow
-        octave_bins = 24
-        pitch_factors = [(m.neighbors[0].keypoint.y - m.keypoint.y) * 12 / octave_bins for m in cluster]
+        octave_bins = 36
+        pitch_factors = [(m.neighbors[0].keypoint.y - m.keypoint.y) * 2 * 12 / octave_bins for m in cluster]
 
         self.derivative_start = derivative_start_time
         self.derivative_end = derivative_end_time
@@ -324,6 +324,7 @@ class Sample:
         self.pitch_shift = statistics.median(pitch_factors)
         self.time_stretch = statistics.median(stretch_factors)
         self.confidence = self.score(cluster, self.pitch_shift, self.time_stretch)
+        self.size = len(cluster)
         # TODO: for debugging purposes only
         self.cluster = cluster
 
@@ -331,6 +332,7 @@ class Sample:
     def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
+        logger.info(f"Distances: {distances}")
         return sigmoid(len(cluster) - 3) * (1 - statistics.mean(distances))
         # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 

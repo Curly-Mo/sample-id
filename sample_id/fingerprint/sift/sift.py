@@ -33,10 +33,10 @@ def from_file(audio_path, id, sr, hop_length=512, implementation="vlfeat", **kwa
 
 
 class SiftFingerprint(fingerprint.Fingerprint):
-    def __init__(self, audio_path, id, sr, hop_length, **kwargs):
+    def __init__(self, audio_path, id, sr, hop_length, octave_bins=36, **kwargs):
         self.id = id
-        kp, desc, s = self.sift_file(audio_path, sr, hop_length, **kwargs)
-        super().__init__(kp, desc, id, sr, hop_length)
+        kp, desc, s = self.sift_file(audio_path, sr, hop_length, octave_bins=octave_bins, **kwargs)
+        super().__init__(kp, desc, id, sr, hop_length, octave_bins=octave_bins)
         # self.spectrogram = s
 
     def sift_spectrogram(self, s, id, **kwargs):
