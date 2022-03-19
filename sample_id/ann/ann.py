@@ -8,11 +8,11 @@ import logging
 import math
 import os
 import statistics
+import tarfile
 import tempfile
 import zipfile
 from collections import defaultdict
 from typing import Any, Iterable, List, Optional, Sequence
-import tarfile
 
 import numpy as np
 
@@ -98,7 +98,7 @@ class Matcher(abc.ABC):
         filepath: str,
         compress: bool = True,
         compress_level: int = 9,
-        blocksize: int = 10 ** 8,
+        blocksize: int = 10**8,
         threads: Optional[int] = None,
         **kwargs,
     ) -> str:
@@ -145,7 +145,7 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str, blocksize: int = 10 ** 8, threads: Optional[int] = None, **kwargs) -> Matcher:
+    def load(cls, filepath: str, blocksize: int = 10**8, threads: Optional[int] = None, **kwargs) -> Matcher:
         """Load a matcher from disk."""
         with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
             logger.debug(f"Unzipping {filepath} to {tmp_tarf.name}...")
@@ -341,7 +341,7 @@ class Sample:
     def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
-        logger.info(f"Distances: {distances}")
+        logger.debug(f"Distances: {distances}")
         return sigmoid(len(cluster) - 3) * (1 - statistics.mean(distances))
         # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 

@@ -1,10 +1,11 @@
 import logging
 import os
-from typing import Any, Dict, Iterable, Sequence, Optional
-import mgzip
-import tempfile
-import tarfile
 import shutil
+import tarfile
+import tempfile
+from typing import Any, Dict, Iterable, Optional, Sequence
+
+import mgzip
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,10 @@ def filesize(filename: str) -> str:
 
 
 def tar_files(
-    output_filename: str, files: Iterable[str], file_arcnames: Iterable[str], delete_added: bool = True,
+    output_filename: str,
+    files: Iterable[str],
+    file_arcnames: Iterable[str],
+    delete_added: bool = True,
 ) -> str:
     """Tar files."""
     with tarfile.open(output_filename, mode="w") as tarf:
@@ -76,7 +80,7 @@ def gzip_file(
     output_filename: str,
     input_filename: str,
     compress_level: int = 9,
-    blocksize: int = 10 ** 8,
+    blocksize: int = 10**8,
     threads: Optional[int] = None,
 ) -> str:
     """Gzip a file using mgzip for multithreading."""
@@ -89,7 +93,10 @@ def gzip_file(
 
 
 def gunzip_file(
-    input_filename: str, output_filename: str, blocksize: int = 10 ** 8, threads: Optional[int] = None,
+    input_filename: str,
+    output_filename: str,
+    blocksize: int = 10**8,
+    threads: Optional[int] = None,
 ) -> str:
     """Gzip a file using mgzip for multithreading."""
     with open(output_filename, mode="wb") as f_out:
