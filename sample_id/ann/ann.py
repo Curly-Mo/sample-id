@@ -8,6 +8,7 @@ import logging
 import math
 import os
 import statistics
+import tarfile
 import tempfile
 import zipfile
 from collections import defaultdict
@@ -92,20 +93,29 @@ class Matcher(abc.ABC):
             )
         return True
 
-    def save(self, filepath: str, compress: bool = True, **kwargs) -> str:
+    def save(
+        self,
+        filepath: str,
+        compress: bool = True,
+        compress_level: int = 9,
+        blocksize: int = 10**8,
+        threads: Optional[int] = None,
+        **kwargs,
+    ) -> str:
         """Save this matcher to disk."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            logger.info(f"Saving {self} to temporary dir: {tmpdir}")
-            tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
-            tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
-            tmp_model_path = self.save_model(tmp_model_path, **kwargs)
-            self.meta.save(tmp_meta_path, compress=compress)
-            logger.info(f"Model file {filepath} size: {util.filesize(tmp_model_path)}")
-            logger.info(f"Metadata file {filepath} size: {util.filesize(tmp_meta_path)}")
-            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
-                logger.info(f"Zipping {tmp_model_path} and {tmp_meta_path} into {zipf.filename}")
-                zipf.write(tmp_model_path, arcname=MATCHER_FILENAME)
-                zipf.write(tmp_meta_path, arcname=META_FILENAME)
+        with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                logger.info(f"Saving {self} to temporary dir: {tmpdir}")
+                tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
+                tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
+                tmp_model_path = self.save_model(tmp_model_path, **kwargs)
+                self.meta.save(tmp_meta_path, compress=compress)
+                logger.debug(f"Model file {tmp_model_path} size: {util.filesize(tmp_model_path)}")
+                logger.debug(f"Metadata file {tmp_meta_path} size: {util.filesize(tmp_meta_path)}")
+                util.tar_files(tmp_tarf.name, [tmp_model_path, tmp_meta_path], [MATCHER_FILENAME, META_FILENAME])
+            logger.debug(f"Tar file {tmp_tarf.name} size: {util.filesize(tmp_tarf.name)}")
+            logger.info(f"Zipping {tmp_tarf.name} into {filepath}")
+            util.gzip_file(filepath, tmp_tarf.name, compress_level=compress_level, blocksize=blocksize, threads=threads)
         logger.info(f"Zipped file {filepath} size: {util.filesize(filepath)}")
         return filepath
 
@@ -135,21 +145,20 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str, **kwargs) -> Matcher:
+    def load(cls, filepath: str, blocksize: int = 10**8, threads: Optional[int] = None, **kwargs) -> Matcher:
         """Load a matcher from disk."""
-        with zipfile.ZipFile(filepath, "r") as zipf:
+        with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
+            logger.debug(f"Unzipping {filepath} to {tmp_tarf.name}...")
+            util.gunzip_file(filepath, tmp_tarf.name, blocksize=blocksize, threads=threads)
             tempdir = tempfile.TemporaryDirectory()
             tmp_model_path = os.path.join(tempdir.name, MATCHER_FILENAME)
             tmp_meta_path = os.path.join(tempdir.name, META_FILENAME)
-            logger.info(f"Extracting matcher model to {tmp_model_path}...")
-            zipf.extract(MATCHER_FILENAME, tempdir.name)
-            logger.info(f"Extracting matcher metadata to {tmp_meta_path}...")
-            zipf.extract(META_FILENAME, tempdir.name)
-            meta = MatcherMetadata.load(tmp_meta_path)
-            matcher = cls(meta)
-            matcher.tempdir = tempdir
-            matcher.load_model(tmp_model_path, **kwargs)
-            return matcher
+            util.untar(tmp_tarf.name, [MATCHER_FILENAME, META_FILENAME], tempdir.name)
+        meta = MatcherMetadata.load(tmp_meta_path)
+        matcher = cls(meta)
+        matcher.tempdir = tempdir
+        matcher.load_model(tmp_model_path, **kwargs)
+        return matcher
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.meta})"
@@ -178,6 +187,7 @@ class Matcher(abc.ABC):
     def find_samples(
         self,
         fp: Fingerprint,
+        k: int = 1,
         abs_thresh=None,
         ratio_thresh=None,
         cluster_dist=1.0,
@@ -185,7 +195,7 @@ class Matcher(abc.ABC):
         match_orientation=True,
         ordered=False,
     ) -> Result:
-        matches = self.nearest_neighbors(fp)
+        matches = self.nearest_neighbors(fp, k)
         clusters = self.filter_matches(
             matches,
             abs_thresh=abs_thresh,
@@ -313,8 +323,8 @@ class Sample:
             for m1, m2 in combos
         ]
         # TODO: read octave_bins from matcher somehow
-        octave_bins = 24
-        pitch_factors = [(m.neighbors[0].keypoint.y - m.keypoint.y) * 12 / octave_bins for m in cluster]
+        octave_bins = 36
+        pitch_factors = [(m.neighbors[0].keypoint.y - m.keypoint.y) * 2 * 12 / octave_bins for m in cluster]
 
         self.derivative_start = derivative_start_time
         self.derivative_end = derivative_end_time
@@ -322,14 +332,18 @@ class Sample:
         self.source_end = source_end_time
         self.pitch_shift = statistics.median(pitch_factors)
         self.time_stretch = statistics.median(stretch_factors)
-        self.confidence = self.score(cluster)
+        self.confidence = self.score(cluster, self.pitch_shift, self.time_stretch)
+        self.size = len(cluster)
         # TODO: for debugging purposes only
         self.cluster = cluster
 
     # TODO: do something not dumb here
-    def score(self, cluster: List[Match]) -> float:
-        sigmoid = lambda x: 1 / (1 + math.exp(-x))
-        return sigmoid(len(cluster) / 100.0)
+    def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
+        sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
+        distances = [match.neighbors[0].distance for match in cluster]
+        logger.debug(f"Distances: {distances}")
+        return sigmoid(len(cluster) - 3) * (1 - statistics.mean(distances))
+        # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 
     def as_dict(self) -> dict:
         d = {k: str(v) if type(v) == datetime.timedelta else v for k, v in util.class_attributes(self, []).items()}

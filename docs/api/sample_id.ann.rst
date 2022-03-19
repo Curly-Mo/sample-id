@@ -9,6 +9,7 @@ Submodules
 
    sample_id.ann.ann
    sample_id.ann.annoy
+   sample_id.ann.hive
    sample_id.ann.hough
 
 Module contents

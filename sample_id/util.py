@@ -1,6 +1,11 @@
 import logging
 import os
-from typing import Any, Dict, Iterable, Sequence
+import shutil
+import tarfile
+import tempfile
+from typing import Any, Dict, Iterable, Optional, Sequence
+
+import mgzip
 
 logger = logging.getLogger(__name__)
 
@@ -42,3 +47,59 @@ def filesize(filename: str) -> str:
         logger.warn(f"File {filename} does not exist")
         return human_bytes(0)
     return human_bytes(os.path.getsize(filename))
+
+
+def tar_files(
+    output_filename: str,
+    files: Iterable[str],
+    file_arcnames: Iterable[str],
+    delete_added: bool = True,
+) -> str:
+    """Tar files."""
+    with tarfile.open(output_filename, mode="w") as tarf:
+        for file, arcname in zip(files, file_arcnames):
+            tarf.add(file, arcname=arcname)
+            if delete_added:
+                os.remove(file)
+    return output_filename
+
+
+def untar(input_tarfile: str, members: Iterable[str], output_dir: str) -> Iterable[str]:
+    """Untar an tarball."""
+    output_filenames = []
+    with tarfile.open(input_tarfile, mode="r") as tarf:
+        for member in members:
+            out_filename = os.path.join(output_dir, member)
+            logger.info(f"Extracting {member} to {out_filename}...")
+            tarf.extract(member, path=output_dir)
+            output_filenames.append(out_filename)
+    return output_filenames
+
+
+def gzip_file(
+    output_filename: str,
+    input_filename: str,
+    compress_level: int = 9,
+    blocksize: int = 10**8,
+    threads: Optional[int] = None,
+) -> str:
+    """Gzip a file using mgzip for multithreading."""
+    with mgzip.open(
+        output_filename, mode="wb", compresslevel=compress_level, blocksize=blocksize, thread=threads
+    ) as f_out:
+        with open(input_filename, "rb") as f_in:
+            shutil.copyfileobj(f_in, f_out)
+    return output_filename
+
+
+def gunzip_file(
+    input_filename: str,
+    output_filename: str,
+    blocksize: int = 10**8,
+    threads: Optional[int] = None,
+) -> str:
+    """Gzip a file using mgzip for multithreading."""
+    with open(output_filename, mode="wb") as f_out:
+        with mgzip.open(input_filename, mode="rb", blocksize=blocksize, thread=threads) as f_in:
+            shutil.copyfileobj(f_in, f_out)
+    return output_filename

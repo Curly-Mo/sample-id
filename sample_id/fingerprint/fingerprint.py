@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False, **kwargs) -> Fingerprint:
+    """Generate a fingerprint from an audio file."""
     if feature == "sift":
         from . import sift
 
@@ -24,21 +25,21 @@ def from_file(audio_path, id, sr, hop_length=512, feature="sift", dedupe=False, 
 
 
 def load(filepath: str) -> Fingerprint:
+    """Load a fingerprint from file."""
     with np.load(filepath) as data:
-        return Fingerprint(
-            data["keypoints"],
-            data["descriptors"],
-            data["id"].item(),
-            data["sr"].item(),
-            data["hop"].item(),
-            data["is_deduped"].item(),
-        )
+        constructor_args = Fingerprint.__init__.__code__.co_varnames[1:]
+        # TODO: replace this hack to be backwards compatible with misnamed hop arg
+        if "hop" in data.keys():
+            constructor_args = ["hop" if arg == "hop_length" else arg for arg in constructor_args]
+        arg_data = tuple(data.get(arg) for arg in constructor_args)
+        arg_values = [arg if arg is None or arg.shape else arg.item() for arg in arg_data]
+        return Fingerprint(*arg_values)
 
 
 class Fingerprint:
     spectrogram = NotImplemented
 
-    def __init__(self, keypoints, descriptors, id, sr, hop_length, is_deduped=False):
+    def __init__(self, keypoints, descriptors, id, sr, hop_length, is_deduped=False, octave_bins=None):
         self.keypoints = keypoints
         self.descriptors = descriptors
         self.id = id
@@ -46,10 +47,11 @@ class Fingerprint:
         self.hop_length = hop_length
         self.is_deduped = is_deduped
         self.size = len(keypoints)
+        self.octave_bins = octave_bins
 
     def remove_similar_keypoints(self):
         if len(self.descriptors) > 0:
-            logger.info("Removing duplicate/similar keypoints...")
+            logger.info(f"{self.id}: Removing duplicate/similar keypoints...")
             a = np.array(self.descriptors)
             rounding_factor = 10
             b = np.ascontiguousarray((a // rounding_factor) * rounding_factor).view(
@@ -58,7 +60,7 @@ class Fingerprint:
             _, idx = np.unique(b, return_index=True)
             desc = a[sorted(idx)]
             kp = np.array([k for i, k in enumerate(self.keypoints) if i in idx])
-            logger.info("Removed {} duplicate keypoints".format(a.shape[0] - idx.shape[0]))
+            logger.info(f"{self.id}: Removed {a.shape[0] - idx.shape[0]} duplicate keypoints")
             self.keypoints = kp
             self.descriptors = desc
             self.is_deduped = True
@@ -78,15 +80,11 @@ class Fingerprint:
 
     def save(self, filepath: str, compress: bool = True):
         save_fn = np.savez_compressed if compress else np.savez
-        save_fn(
-            filepath,
-            keypoints=self.keypoints,
-            descriptors=self.descriptors,
-            sr=self.sr,
-            hop=self.hop_length,
-            id=self.id,
-            is_deduped=self.is_deduped,
-        )
+        # save all attributes used in constructor
+        constructor_arg_names = self.__init__.__code__.co_varnames[1:]
+        constructor_kwargs = {name: getattr(self, name, None) for name in constructor_arg_names}
+        constructor_kwargs = {key: value for key, value in constructor_kwargs.items() if value is not None}
+        save_fn(filepath, **constructor_kwargs)
 
     def __repr__(self):
         return util.class_repr(self)
