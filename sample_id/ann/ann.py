@@ -3,14 +3,14 @@ from __future__ import annotations
 import abc
 import datetime
 import itertools
-import json
 import logging
 import math
 import os
 import statistics
 import tempfile
 from collections import defaultdict
-from typing import Any, Iterable, List, Optional, Sequence
+from typing import Any, Iterable, List, Optional, Sequence, Callable
+import bisect
 
 import numpy as np
 
@@ -349,6 +349,10 @@ class Sample:
         d
         return d
 
+    def __lt__(self, other: Sample) -> bool:
+        """Default sort by confidence score"""
+        return self.confidence < other.confidence
+
     def __repr__(self):
         return util.class_repr(self)
 
@@ -361,14 +365,20 @@ class Result:
             head = next(m for m in cluster)
             key = head.neighbors[0].source_id
             sample = Sample(cluster, fp.sr, fp.hop_length)
-            self.sources[key].append(sample)
+            # keep samples sorted by confidence
+            bisect.insort(self.sources[key], sample)
 
-    def as_dict(self) -> dict:
-        sources = [
-            {"source": source, "samples": [sample.as_dict() for sample in samples]}
-            for source, samples in self.sources.items()
-        ]
-        return {"id": self.id, "sources": sources}
+    def as_dict(self, id_mapper: Callable[[str], str] = lambda i: i) -> dict:
+        # Sort sources by max confidence score
+        sources = sorted(
+            [
+                {"source": id_mapper(source), "samples": list(reversed([sample.as_dict() for sample in samples]))}
+                for source, samples in self.sources.items()
+            ],
+            key=lambda source_d: max(source_d["samples"], key=lambda sample_d: sample_d["confidence"]),
+            reverse=True,
+        )
+        return {"id": id_mapper(self.id), "sources": sources}
 
     def __repr__(self):
         return util.class_repr(self)
