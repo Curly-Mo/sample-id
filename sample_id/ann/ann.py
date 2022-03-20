@@ -96,7 +96,7 @@ class Matcher(abc.ABC):
         filepath: str,
         compress: bool = True,
         compress_level: int = 9,
-        blocksize: int = 10**8,
+        blocksize: int = 10 * 1024 * 1024,
         threads: Optional[int] = None,
         **kwargs,
     ) -> str:
@@ -143,7 +143,7 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str, blocksize: int = 10**8, threads: Optional[int] = None, **kwargs) -> Matcher:
+    def load(cls, filepath: str, blocksize: int = 10 * 1024 * 1024, threads: Optional[int] = None, **kwargs) -> Matcher:
         """Load a matcher from disk."""
         with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
             logger.debug(f"Unzipping {filepath} to {tmp_tarf.name}...")

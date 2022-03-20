@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 import shutil
@@ -24,6 +25,15 @@ def class_attributes(cls, filter_types: Sequence[Any] = (int, float, bool, str))
     return {
         k: v for k, v in vars(cls).items() if (type(v) in filter_types or not filter_types) and len(v.__repr__()) < 80
     }
+
+
+def basic_attribute_repr(cls):
+    @functools.wraps(cls, updated=())
+    class ReprDecorated(cls):
+        def __repr__(self) -> str:
+            return class_repr(self)
+
+    return ReprDecorated
 
 
 def human_bytes(bytes: float) -> str:
@@ -80,7 +90,7 @@ def gzip_file(
     output_filename: str,
     input_filename: str,
     compress_level: int = 9,
-    blocksize: int = 10**8,
+    blocksize: int = 10 * 1024 * 1024,
     threads: Optional[int] = None,
 ) -> str:
     """Gzip a file using mgzip for multithreading."""
@@ -88,18 +98,18 @@ def gzip_file(
         output_filename, mode="wb", compresslevel=compress_level, blocksize=blocksize, thread=threads
     ) as f_out:
         with open(input_filename, "rb") as f_in:
-            shutil.copyfileobj(f_in, f_out)
+            shutil.copyfileobj(f_in, f_out, length=blocksize)
     return output_filename
 
 
 def gunzip_file(
     input_filename: str,
     output_filename: str,
-    blocksize: int = 10**8,
+    blocksize: int = 10 * 1024 * 1024,
     threads: Optional[int] = None,
 ) -> str:
     """Gzip a file using mgzip for multithreading."""
     with open(output_filename, mode="wb") as f_out:
         with mgzip.open(input_filename, mode="rb", blocksize=blocksize, thread=threads) as f_in:
-            shutil.copyfileobj(f_in, f_out)
+            shutil.copyfileobj(f_in, f_out, length=blocksize)
     return output_filename
