@@ -8,9 +8,7 @@ import logging
 import math
 import os
 import statistics
-import tarfile
 import tempfile
-import zipfile
 from collections import defaultdict
 from typing import Any, Iterable, List, Optional, Sequence
 
@@ -166,10 +164,10 @@ class Matcher(abc.ABC):
     def filter_matches(
         self,
         matches: List[Match],
-        abs_thresh=None,
+        abs_thresh=0.25,
         ratio_thresh=None,
-        cluster_dist=1.0,
-        cluster_size=3,
+        cluster_dist=4.0,
+        cluster_size=2,
         match_orientation=True,
         ordered=False,
     ) -> List[List[Match]]:
@@ -188,10 +186,10 @@ class Matcher(abc.ABC):
         self,
         fp: Fingerprint,
         k: int = 1,
-        abs_thresh=None,
+        abs_thresh=0.25,
         ratio_thresh=None,
-        cluster_dist=1.0,
-        cluster_size=3,
+        cluster_dist=4.0,
+        cluster_size=2,
         match_orientation=True,
         ordered=False,
     ) -> Result:
@@ -330,15 +328,15 @@ class Sample:
         self.derivative_end = derivative_end_time
         self.source_start = source_start_time
         self.source_end = source_end_time
-        self.pitch_shift = statistics.median(pitch_factors)
-        self.time_stretch = statistics.median(stretch_factors)
-        self.confidence = self.score(cluster, self.pitch_shift, self.time_stretch)
+        self.pitch_shift = None if not pitch_factors else statistics.median(pitch_factors)
+        self.time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
+        self.confidence = self.score(cluster)
         self.size = len(cluster)
         # TODO: for debugging purposes only
         self.cluster = cluster
 
     # TODO: do something not dumb here
-    def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
+    def score(self, cluster: List[Match]) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
         logger.debug(f"Distances: {distances}")
@@ -378,10 +376,10 @@ class Result:
 
 def filter_matches(
     matches: List[Match],
-    abs_thresh=None,
+    abs_thresh=0.25,
     ratio_thresh=None,
-    cluster_dist=1,
-    cluster_size=3,
+    cluster_dist=4.0,
+    cluster_size=2,
     match_orientation=True,
     ordered=False,
 ):
