@@ -375,7 +375,7 @@ class Result:
                 {"source": id_mapper(source), "samples": list(reversed([sample.as_dict() for sample in samples]))}
                 for source, samples in self.sources.items()
             ],
-            key=lambda source_d: max(source_d["samples"], key=lambda sample_d: sample_d["confidence"]),
+            key=lambda source_d: max(sample.get("confidence", 0) for sample in source_d.get("samples", [])),
             reverse=True,
         )
         return {"id": id_mapper(self.id), "sources": sources}
