@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import abc
+import bisect
 import datetime
 import itertools
-import json
 import logging
 import math
 import os
 import statistics
-import tarfile
 import tempfile
-import zipfile
 from collections import defaultdict
-from typing import Any, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Iterable, List, Optional, Sequence
 
 import numpy as np
 
@@ -166,10 +164,10 @@ class Matcher(abc.ABC):
     def filter_matches(
         self,
         matches: List[Match],
-        abs_thresh=None,
+        abs_thresh=0.25,
         ratio_thresh=None,
-        cluster_dist=1.0,
-        cluster_size=3,
+        cluster_dist=4.0,
+        cluster_size=2,
         match_orientation=True,
         ordered=False,
     ) -> List[List[Match]]:
@@ -188,10 +186,10 @@ class Matcher(abc.ABC):
         self,
         fp: Fingerprint,
         k: int = 1,
-        abs_thresh=None,
+        abs_thresh=0.25,
         ratio_thresh=None,
-        cluster_dist=1.0,
-        cluster_size=3,
+        cluster_dist=4.0,
+        cluster_size=2,
         match_orientation=True,
         ordered=False,
     ) -> Result:
@@ -330,15 +328,15 @@ class Sample:
         self.derivative_end = derivative_end_time
         self.source_start = source_start_time
         self.source_end = source_end_time
-        self.pitch_shift = statistics.median(pitch_factors)
-        self.time_stretch = statistics.median(stretch_factors)
-        self.confidence = self.score(cluster, self.pitch_shift, self.time_stretch)
+        self.pitch_shift = None if not pitch_factors else statistics.median(pitch_factors)
+        self.time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
+        self.confidence = self.score(cluster)
         self.size = len(cluster)
         # TODO: for debugging purposes only
         self.cluster = cluster
 
     # TODO: do something not dumb here
-    def score(self, cluster: List[Match], pitch_shift: float, time_stretch: float) -> float:
+    def score(self, cluster: List[Match]) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
         logger.debug(f"Distances: {distances}")
@@ -350,6 +348,10 @@ class Sample:
         d.pop("cluster", None)
         d
         return d
+
+    def __lt__(self, other: Sample) -> bool:
+        """Default sort by confidence score"""
+        return self.confidence < other.confidence
 
     def __repr__(self):
         return util.class_repr(self)
@@ -363,14 +365,20 @@ class Result:
             head = next(m for m in cluster)
             key = head.neighbors[0].source_id
             sample = Sample(cluster, fp.sr, fp.hop_length)
-            self.sources[key].append(sample)
+            # keep samples sorted by confidence
+            bisect.insort(self.sources[key], sample)
 
-    def as_dict(self) -> dict:
-        sources = [
-            {"source": source, "samples": [sample.as_dict() for sample in samples]}
-            for source, samples in self.sources.items()
-        ]
-        return {"id": self.id, "sources": sources}
+    def as_dict(self, id_mapper: Callable[[str], str] = lambda i: i) -> dict:
+        # Sort sources by max confidence score
+        sources = sorted(
+            [
+                {"source": id_mapper(source), "samples": list(reversed([sample.as_dict() for sample in samples]))}
+                for source, samples in self.sources.items()
+            ],
+            key=lambda source_d: max(source_d["samples"], key=lambda sample_d: sample_d["confidence"]),
+            reverse=True,
+        )
+        return {"id": id_mapper(self.id), "sources": sources}
 
     def __repr__(self):
         return util.class_repr(self)
@@ -378,10 +386,10 @@ class Result:
 
 def filter_matches(
     matches: List[Match],
-    abs_thresh=None,
+    abs_thresh=0.25,
     ratio_thresh=None,
-    cluster_dist=1,
-    cluster_size=3,
+    cluster_dist=4.0,
+    cluster_size=2,
     match_orientation=True,
     ordered=False,
 ):
