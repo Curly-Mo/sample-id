@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import bisect
 import datetime
 import itertools
 import logging
@@ -9,8 +10,7 @@ import os
 import statistics
 import tempfile
 from collections import defaultdict
-from typing import Any, Iterable, List, Optional, Sequence, Callable
-import bisect
+from typing import Any, Callable, Iterable, List, Optional, Sequence
 
 import numpy as np
 
