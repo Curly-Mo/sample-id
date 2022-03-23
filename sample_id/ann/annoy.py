@@ -5,7 +5,7 @@ import annoy
 
 from sample_id.fingerprint import Fingerprint
 
-from . import Match, Matcher, MatcherMetadata, Neighbor
+from . import Match, Matcher, MatcherMetadata, Neighbor, Keypoint
 
 logger = logging.getLogger(__name__)
 
@@ -59,5 +59,5 @@ class AnnoyMatcher(Matcher):
         for kp, desc in zip(fp.keypoints, fp.descriptors):
             indices, distances = self.model.get_nns_by_vector(desc, k, include_distances=True)
             kp_neighbors = [Neighbor(index, distance, self.meta) for index, distance in zip(indices, distances)]
-            matches.append(Match(kp, kp_neighbors))
+            matches.append(Match(Keypoint(kp), kp_neighbors))
         return matches

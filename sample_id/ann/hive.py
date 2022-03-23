@@ -88,5 +88,5 @@ class HiveMatcher(Matcher):
                 key=operator.attrgetter("distance"),
             )[:k]
             head = next(match for match in kp_hive_matches)
-            resorted_matches.append(Match(head.keypoint.kp, top_k_neighbors))
+            resorted_matches.append(Match(head.keypoint, top_k_neighbors))
         return resorted_matches

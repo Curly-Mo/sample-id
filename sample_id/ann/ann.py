@@ -10,7 +10,9 @@ import os
 import statistics
 import tempfile
 from collections import defaultdict
-from typing import Any, Callable, Iterable, List, Optional, Sequence
+import dataclasses
+from dataclasses import dataclass, field, InitVar
+from typing import Any, Callable, Iterable, List, Optional, Sequence, Dict, Tuple
 
 import numpy as np
 
@@ -268,40 +270,59 @@ class MatcherMetadata:
         return util.class_repr(self)
 
 
+@dataclass
 class Match:
-    def __init__(self, keypoint, neighbors: Sequence[Neighbor]):
-        self.keypoint = Keypoint(keypoint)
-        self.neighbors = neighbors
+    """A match between a Keypoint and it's neighbors."""
+    keypoint: Keypoint
+    neighbors: Sequence[Neighbor]
 
-    def __repr__(self) -> str:
-        return util.class_repr(self)
+    def __hash__(self):
+        return hash((self.keypoint, next(iter(self.neighbors), None)))
 
 
+@dataclass(unsafe_hash=True)
 class Neighbor:
-    def __init__(self, index: int, distance: float, meta: MatcherMetadata):
-        self.index = index
-        self.distance = distance
-        self.keypoint = Keypoint(meta.index_to_kp[index])
-        self.source_id = meta.index_to_id[index].item()
+    """A nearest_neighbor queried from a Matcher."""
+    index: int
+    distance: float
+    keypoint: Keypoint = field(init=False)
+    source_id: str = field(init=False)
+    meta: InitVar[MatcherMetadata]
 
-    def __repr__(self) -> str:
-        return util.class_repr(self)
+    def __post_init__(self, meta: MatcherMetadata):
+        self.keypoint = Keypoint(meta.index_to_kp[self.index])
+        self.source_id = meta.index_to_id[self.index].item()
 
 
+@dataclass(unsafe_hash=True)
 class Keypoint:
-    def __init__(self, kp):
-        self.x = kp[0].item()
-        self.y = kp[1].item()
-        self.scale = kp[2].item()
-        self.orientation = kp[3].item()
-        self.kp = kp
+    """A fingerprint keypoint."""
+    kp: np.ndarray[np.float32] = field(repr=False, compare=False)
+    x: float = field(init=False)
+    y: float = field(init=False)
+    scale: float = field(init=False)
+    orientation: float = field(init=False)
 
-    def __repr__(self):
-        return util.class_repr(self)
+    def __post_init__(self):
+        self.x = self.kp[0].item()
+        self.y = self.kp[1].item()
+        self.scale = self.kp[2].item()
+        self.orientation = self.kp[3].item()
 
 
+@dataclass
 class Sample:
-    def __init__(self, cluster: List[Match], sr, hop_length):
+    derivative_start: datetime.timedelta
+    derivative_end: datetime.timedelta
+    source_start: datetime.timedelta
+    source_end: datetime.timedelta
+    pitch_shift_factor: Optional[float]
+    time_stretch_factor: Optional[float]
+    confidence: float
+    size: int
+
+    @classmethod
+    def from_cluster(cls, cluster: List[Match], sr: int, hop_length: int) -> Sample:
         deriv_min_x = min(match.keypoint.x for match in cluster)
         deriv_max_x = max(match.keypoint.x for match in cluster)
         source_min_x = min(match.neighbors[0].keypoint.x for match in cluster)
@@ -324,19 +345,17 @@ class Sample:
         octave_bins = 36
         pitch_factors = [(m.neighbors[0].keypoint.y - m.keypoint.y) * 2 * 12 / octave_bins for m in cluster]
 
-        self.derivative_start = derivative_start_time
-        self.derivative_end = derivative_end_time
-        self.source_start = source_start_time
-        self.source_end = source_end_time
-        self.pitch_shift = None if not pitch_factors else statistics.median(pitch_factors)
-        self.time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
-        self.confidence = self.score(cluster)
-        self.size = len(cluster)
+        pitch_shift = None if not pitch_factors else statistics.median(pitch_factors)
+        time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
+        sample = cls(derivative_start_time, derivative_end_time, source_start_time, source_end_time,
+                pitch_shift, time_stretch, cls.score(cluster), len(cluster))
         # TODO: for debugging purposes only
-        self.cluster = cluster
+        sample.cluster = cluster
+        return sample
 
     # TODO: do something not dumb here
-    def score(self, cluster: List[Match]) -> float:
+    @classmethod
+    def score(cls, cluster: List[Match]) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
         logger.debug(f"Distances: {distances}")
@@ -344,27 +363,27 @@ class Sample:
         # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 
     def as_dict(self) -> dict:
-        d = {k: str(v) if type(v) == datetime.timedelta else v for k, v in util.class_attributes(self, []).items()}
-        d.pop("cluster", None)
-        d
-        return d
+        return {k: str(v) if type(v) == datetime.timedelta else v for k, v in dataclasses.asdict(self).items()}
 
     def __lt__(self, other: Sample) -> bool:
         """Default sort by confidence score"""
         return self.confidence < other.confidence
 
-    def __repr__(self):
-        return util.class_repr(self)
 
-
+@dataclass
 class Result:
-    def __init__(self, fp: Fingerprint, clusters: List[List[Match]]):
+    id: str = field(init=False)
+    sources: Dict[str, Any] = field(init=False)
+    fp: InitVar[Fingerprint]
+    clusters: InitVar[List[List[Match]]]
+
+    def __post_init__(self, fp: Fingerprint, clusters: List[List[Match]]):
         self.id = fp.id
         self.sources = defaultdict(list)
         for cluster in clusters:
             head = next(m for m in cluster)
             key = head.neighbors[0].source_id
-            sample = Sample(cluster, fp.sr, fp.hop_length)
+            sample = Sample.from_cluster(cluster, fp.sr, fp.hop_length)
             # keep samples sorted by confidence
             bisect.insort(self.sources[key], sample)
 
@@ -379,9 +398,6 @@ class Result:
             reverse=True,
         )
         return {"id": id_mapper(self.id), "sources": sources}
-
-    def __repr__(self):
-        return util.class_repr(self)
 
 
 def filter_matches(
@@ -400,6 +416,7 @@ def filter_matches(
         for match in list(matches):
             orient = match.keypoint.orientation
             while match.neighbors and abs(orient - match.neighbors[0].keypoint.orientation) > 0.2:
+                # replace(match, neighbors=match.neighbors[1:])
                 match.neighbors = match.neighbors[1:]
             if not match.neighbors:
                 matches.remove(match)
@@ -485,9 +502,9 @@ def cluster_matches(matches, cluster_dist):
 
     logger.info("Clustering matches...")
     logger.info(f"cluster_dist: {cluster_dist}")
-    matches = sorted(matches, key=lambda m: (m.neighbors[0].keypoint.source, m.keypoint.x))
+    matches = sorted(matches, key=lambda m: (m.neighbors[0].source_id, m.keypoint.x))
     clusters = {}
-    for source, group in itertools.groupby(matches, lambda m: m.neighbors[0].keypoint.source):
+    for source, group in itertools.groupby(matches, lambda m: m.neighbors[0].source_id):
         for match in group:
             cluster_found = False
             for cluster in clusters.get(source, []):
