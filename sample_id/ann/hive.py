@@ -1,16 +1,7 @@
 from __future__ import annotations
 
-import abc
-import datetime
-import itertools
-import json
 import logging
-import math
 import operator
-import os
-import statistics
-import tempfile
-import zipfile
 from typing import Any, Iterable, List, Optional, Sequence
 
 from sample_id.fingerprint import Fingerprint
@@ -34,6 +25,10 @@ class HiveMatcher(Matcher):
         self.matchers = matchers
 
     def add_matcher(self, matcher: Matcher) -> HiveMatcher:
+        if self.meta.sr is None:
+            self.meta.sr = matcher.meta.sr
+        if self.meta.hop_length is None:
+            self.meta.hop_length = matcher.meta.hop_length
         if matcher.meta.sr != self.meta.sr or matcher.meta.hop_length != self.meta.hop_length:
             raise ValueError(f"Hive must all have the same sr and hop_length, can't add {matcher}")
         self.matchers.append(matcher)

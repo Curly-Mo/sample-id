@@ -96,7 +96,7 @@ class Matcher(abc.ABC):
         filepath: str,
         compress: bool = True,
         compress_level: int = 9,
-        blocksize: int = 10**8,
+        blocksize: int = 10 * 1024 * 1024,
         threads: Optional[int] = None,
         **kwargs,
     ) -> str:
@@ -143,7 +143,7 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str, blocksize: int = 10**8, threads: Optional[int] = None, **kwargs) -> Matcher:
+    def load(cls, filepath: str, blocksize: int = 10 * 1024 * 1024, threads: Optional[int] = None, **kwargs) -> Matcher:
         """Load a matcher from disk."""
         with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
             logger.debug(f"Unzipping {filepath} to {tmp_tarf.name}...")
@@ -375,7 +375,7 @@ class Result:
                 {"source": id_mapper(source), "samples": list(reversed([sample.as_dict() for sample in samples]))}
                 for source, samples in self.sources.items()
             ],
-            key=lambda source_d: max(source_d["samples"], key=lambda sample_d: sample_d["confidence"]),
+            key=lambda source_d: max(sample.get("confidence", 0) for sample in source_d.get("samples", [])),
             reverse=True,
         )
         return {"id": id_mapper(self.id), "sources": sources}
