@@ -6,7 +6,8 @@ from typing import Any, Iterable, List, Optional, Sequence
 
 from sample_id.fingerprint import Fingerprint
 
-from . import Match, Matcher, MatcherMetadata, Neighbor
+from . import Matcher, MatcherMetadata
+from .query import Match
 
 logger = logging.getLogger(__name__)
 
