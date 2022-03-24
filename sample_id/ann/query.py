@@ -46,21 +46,17 @@ class Neighbor:
         self.source_id = meta.index_to_id[self.index].item()
 
 
-@dataclass(unsafe_hash=True)
-class Keypoint:
-    """A fingerprint keypoint."""
+@dataclass
+class Cluster:
+    """A group of Matches."""
 
-    kp: np.ndarray[np.float32] = field(repr=False, compare=False)
-    x: float = field(init=False)
-    y: float = field(init=False)
-    scale: float = field(init=False)
-    orientation: float = field(init=False)
+    matches: List[Match]
 
-    def __post_init__(self):
-        self.x = self.kp[0].item()
-        self.y = self.kp[1].item()
-        self.scale = self.kp[2].item()
-        self.orientation = self.kp[3].item()
+    def __iter__(self):
+        return iter(self.matches)
+
+    def __len__(self):
+        return len(self.matches)
 
 
 @dataclass
@@ -73,9 +69,11 @@ class Sample:
     time_stretch_factor: Optional[float]
     confidence: float
     size: int
+    min_distance: float
+    average_distance: float
 
     @classmethod
-    def from_cluster(cls, cluster: List[Match], sr: int, hop_length: int) -> Sample:
+    def from_cluster(cls, cluster: Cluster, sr: int, hop_length: int) -> Sample:
         deriv_min_x = min(match.keypoint.x for match in cluster)
         deriv_max_x = max(match.keypoint.x for match in cluster)
         source_min_x = min(match.neighbors[0].keypoint.x for match in cluster)
@@ -100,6 +98,7 @@ class Sample:
 
         pitch_shift = None if not pitch_factors else statistics.median(pitch_factors)
         time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
+        distances = [match.neighbors[0].distance for match in cluster]
         sample = cls(
             derivative_start_time,
             derivative_end_time,
@@ -109,6 +108,8 @@ class Sample:
             time_stretch,
             cls.score(cluster),
             len(cluster),
+            min(distances),
+            statistics.mean(distances),
         )
         # TODO: for debugging purposes only
         sample.cluster = cluster
@@ -116,10 +117,9 @@ class Sample:
 
     # TODO: do something not dumb here
     @classmethod
-    def score(cls, cluster: List[Match]) -> float:
+    def score(cls, cluster: Cluster) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
-        logger.debug(f"Distances: {distances}")
         return sigmoid(len(cluster) - 3) * (1 - statistics.mean(distances))
         # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 
@@ -130,15 +130,24 @@ class Sample:
         """Default sort by confidence score"""
         return self.confidence < other.confidence
 
+    @classmethod
+    def basic_filter(cls, min_size: int = 2, min_distance: float = 0.2) -> Callable[[Sample], bool]:
+        """Filter function keeping only samples with either a minimum size or distance."""
+
+        def fn(sample: Sample) -> bool:
+            return sample.size >= min_size or sample.min_distance <= min_distance
+
+        return fn
+
 
 @dataclass
 class Result:
     id: str = field(init=False)
     sources: Dict[str, Any] = field(init=False)
     fp: InitVar[Fingerprint]
-    clusters: InitVar[List[List[Match]]]
+    clusters: InitVar[List[Cluster]]
 
-    def __post_init__(self, fp: Fingerprint, clusters: List[List[Match]]):
+    def __post_init__(self, fp: Fingerprint, clusters: List[Cluster]):
         self.id = fp.id
         self.sources = defaultdict(list)
         for cluster in clusters:
@@ -147,6 +156,16 @@ class Result:
             sample = Sample.from_cluster(cluster, fp.sr, fp.hop_length)
             # keep samples sorted by confidence
             bisect.insort(self.sources[key], sample)
+
+    def filter(self, sample_filter: Callable[[Sample], bool] = Sample.basic_filter()) -> Result:
+        """Filter keeping only samples that fit the filter function."""
+        sources = {source: sample_filter(samples) for source, samples in self.sources.items()}
+        self.sources = {source: samples for source, samples in sources.items() if samples}
+        return self
+
+    def filter_min_size_or_distance(self, min_size: int = 2, min_distance: float = 0.2) -> Result:
+        """Filter keeping only samples with either a minimum size or distance."""
+        return self.filter(Sample.basic_filter(min_size=min_size, min_distance=min_distance))
 
     def as_dict(self, id_mapper: Callable[[str], str] = lambda i: i) -> dict:
         # Sort sources by max confidence score
@@ -161,6 +180,17 @@ class Result:
         return {"id": id_mapper(self.id), "sources": sources}
 
 
+def basic_cluster_filter(min_cluster_size: int = 2, min_distance: float = 0.2) -> Callable[[Cluster], bool]:
+    """Filter function keeping only clusters with either a minimum size or distance"""
+
+    def fn(cluster: Cluster) -> bool:
+        return len(cluster) >= min_cluster_size or any(
+            n.distance <= min_distance for match in cluster for n in match.neighbors
+        )
+
+    return fn
+
+
 def filter_matches(
     matches: List[Match],
     abs_thresh: Optional[float] = 0.25,
@@ -169,8 +199,8 @@ def filter_matches(
     cluster_size: int = 2,
     match_orientation: bool = True,
     ordered: bool = False,
-    cluster_filter: Optional[Callable[[List[Match]], bool]] = None,
-):
+    cluster_filter: Optional[Callable[[Cluster], bool]] = basic_cluster_filter(),
+) -> List[Cluster]:
     logger.info("Filtering nearest neighbors down to actual matched samples")
     if match_orientation:
         # Remove matches with differing orientations

@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import math
 from collections import defaultdict
+from typing import Dict, List, Set, Tuple
+
+from . import query
 
 logger = logging.getLogger(__name__)
 
 
-def cluster(matches, cluster_size: int = 3, cluster_dist: float = 20):
+def cluster(
+    matches, cluster_size: int = 3, cluster_dist: float = 20
+) -> Tuple[List[query.Cluster], List[query.Cluster]]:
     logger.info("Clustering matches...")
     logger.debug(f"cluster_dist: {cluster_dist} samples")
     clusters = set()
@@ -15,12 +22,12 @@ def cluster(matches, cluster_size: int = 3, cluster_dist: float = 20):
         for bin, cluster in bins.items():
             if len(cluster) >= cluster_size:
                 clusters.add(frozenset(cluster))
-    clusters = [list(c) for c in clusters]
-    total_clusters = [c for bins in votes.values() for c in bins.values()]
+    clusters = [query.Cluster(list(c)) for c in clusters]
+    total_clusters = [query.Cluster(list(c)) for bins in votes.values() for c in bins.values()]
     return clusters, total_clusters
 
 
-def ght(matches, cluster_dist: float = 20):
+def ght(matches: List[query.Match], cluster_dist: float = 20) -> Dict[str, Dict[Tuple[float, float], Set[query.Match]]]:
     votes = defaultdict(lambda: defaultdict(set))
     try:
         dim = max(m.neighbors[0].keypoint.scale for m in matches)
@@ -46,7 +53,7 @@ def ght(matches, cluster_dist: float = 20):
     return votes
 
 
-def round_to(x, base=1, n=2):
+def round_to(x: float, base: float = 1, n: float = 2) -> Tuple[float, float]:
     lo = base * math.floor(float(x) / base)
     hi = base * math.ceil(float(x) / base)
     return (lo, hi)
