@@ -9,20 +9,6 @@ from sample_id import audio, fingerprint
 logger = logging.getLogger(__name__)
 
 
-class Keypoint(object):
-    def __init__(self, x, y, scale=None, orientation=None, source=None, descriptor=None):
-        self.x = x
-        self.y = y
-        self.scale = scale
-        self.orientation = orientation
-        self.source = source
-        self.descriptor = descriptor
-
-    @property
-    def kp(self) -> Tuple[float, float, Optional[float], Optional[float]]:
-        return np.array([self.x, self.y, self.scale, self.orientation])
-
-
 def from_file(audio_path, id, sr, hop_length=512, implementation="vlfeat", **kwargs):
     if implementation == "vlfeat":
         from sample_id.fingerprint.sift import vlfeat

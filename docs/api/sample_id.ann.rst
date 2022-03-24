@@ -11,6 +11,7 @@ Submodules
    sample_id.ann.annoy
    sample_id.ann.hive
    sample_id.ann.hough
+   sample_id.ann.query
 
 Module contents
 ---------------
