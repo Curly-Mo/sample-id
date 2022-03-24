@@ -90,7 +90,7 @@ def gzip_file(
     output_filename: str,
     input_filename: str,
     compress_level: int = 9,
-    blocksize: int = 10 * 1024 * 1024,
+    blocksize: int = 5 * 1024 * 1024,
     threads: Optional[int] = None,
 ) -> str:
     """Gzip a file using mgzip for multithreading."""
@@ -98,18 +98,18 @@ def gzip_file(
         output_filename, mode="wb", compresslevel=compress_level, blocksize=blocksize, thread=threads
     ) as f_out:
         with open(input_filename, "rb") as f_in:
-            shutil.copyfileobj(f_in, f_out, length=blocksize)
+            shutil.copyfileobj(f_in, f_out, length=blocksize // 2)
     return output_filename
 
 
 def gunzip_file(
     input_filename: str,
     output_filename: str,
-    blocksize: int = 10 * 1024 * 1024,
+    blocksize: int = 5 * 1024 * 1024,
     threads: Optional[int] = None,
 ) -> str:
     """Gzip a file using mgzip for multithreading."""
     with open(output_filename, mode="wb") as f_out:
         with mgzip.open(input_filename, mode="rb", blocksize=blocksize, thread=threads) as f_in:
-            shutil.copyfileobj(f_in, f_out, length=blocksize)
+            shutil.copyfileobj(f_in, f_out, length=blocksize // 2)
     return output_filename

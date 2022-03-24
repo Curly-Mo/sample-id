@@ -19,7 +19,7 @@ import numpy as np
 from sample_id import util
 from sample_id.fingerprint import Fingerprint
 
-from . import hough, query
+from . import query
 
 logger = logging.getLogger(__name__)
 
@@ -172,8 +172,8 @@ class Matcher(abc.ABC):
         cluster_size: int = 2,
         match_orientation: bool = True,
         ordered: bool = False,
-        cluster_filter: Optional[Callable[[List[query.Match]], bool]] = None,
-    ) -> List[List[query.Match]]:
+        cluster_filter: Optional[Callable[[query.Cluster], bool]] = None,
+    ) -> List[query.Cluster]:
         cluster_sample_dist = int(cluster_dist * self.meta.sr / self.meta.hop_length)
         return query.filter_matches(
             matches,
@@ -196,7 +196,7 @@ class Matcher(abc.ABC):
         cluster_size: int = 2,
         match_orientation: bool = True,
         ordered: bool = False,
-        cluster_filter: Optional[Callable[[List[query.Match]], bool]] = None,
+        cluster_filter: Optional[Callable[[query.Cluster], bool]] = None,
     ) -> query.Result:
         matches = self.nearest_neighbors(fp, k)
         clusters = self.filter_matches(
