@@ -5,7 +5,7 @@ import annoy
 
 from sample_id.fingerprint import Fingerprint
 
-from . import Match, Matcher, MatcherMetadata, Neighbor, Keypoint
+from . import Keypoint, Match, Matcher, MatcherMetadata, Neighbor
 
 logger = logging.getLogger(__name__)
 

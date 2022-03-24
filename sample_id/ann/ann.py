@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import bisect
+import dataclasses
 import datetime
 import itertools
 import logging
@@ -10,9 +11,8 @@ import os
 import statistics
 import tempfile
 from collections import defaultdict
-import dataclasses
-from dataclasses import dataclass, field, InitVar
-from typing import Any, Callable, Iterable, List, Optional, Sequence, Dict, Tuple
+from dataclasses import InitVar, dataclass, field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -273,6 +273,7 @@ class MatcherMetadata:
 @dataclass
 class Match:
     """A match between a Keypoint and it's neighbors."""
+
     keypoint: Keypoint
     neighbors: Sequence[Neighbor]
 
@@ -283,6 +284,7 @@ class Match:
 @dataclass(unsafe_hash=True)
 class Neighbor:
     """A nearest_neighbor queried from a Matcher."""
+
     index: int
     distance: float
     keypoint: Keypoint = field(init=False)
@@ -297,6 +299,7 @@ class Neighbor:
 @dataclass(unsafe_hash=True)
 class Keypoint:
     """A fingerprint keypoint."""
+
     kp: np.ndarray[np.float32] = field(repr=False, compare=False)
     x: float = field(init=False)
     y: float = field(init=False)
@@ -347,8 +350,16 @@ class Sample:
 
         pitch_shift = None if not pitch_factors else statistics.median(pitch_factors)
         time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
-        sample = cls(derivative_start_time, derivative_end_time, source_start_time, source_end_time,
-                pitch_shift, time_stretch, cls.score(cluster), len(cluster))
+        sample = cls(
+            derivative_start_time,
+            derivative_end_time,
+            source_start_time,
+            source_end_time,
+            pitch_shift,
+            time_stretch,
+            cls.score(cluster),
+            len(cluster),
+        )
         # TODO: for debugging purposes only
         sample.cluster = cluster
         return sample
