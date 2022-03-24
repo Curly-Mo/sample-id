@@ -19,8 +19,7 @@ import numpy as np
 from sample_id import util
 from sample_id.fingerprint import Fingerprint
 
-from . import hough
-from . import query
+from . import hough, query
 
 logger = logging.getLogger(__name__)
 

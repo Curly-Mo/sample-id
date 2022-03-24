@@ -3,9 +3,10 @@ from typing import Any, Sequence
 
 import annoy
 
-from sample_id.fingerprint import Fingerprint
+from sample_id.fingerprint import Fingerprint, Keypoint
 
-from . import Keypoint, Match, Matcher, MatcherMetadata, Neighbor
+from . import Matcher, MatcherMetadata
+from .query import Match, Neighbor
 
 logger = logging.getLogger(__name__)
 

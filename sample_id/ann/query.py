@@ -15,8 +15,7 @@ import numpy as np
 
 from sample_id.fingerprint import Fingerprint, Keypoint
 
-from . import ann
-from . import hough
+from . import ann, hough
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +228,9 @@ def filter_matches(
         filtered_clusters = ordered_clusters
     if cluster_filter:
         filtered = [cluster for cluster in filtered_clusters if cluster_filter(cluster)]
-        logger.info(f"Custom filter removed {len(filtered_clusters) - len(filtered)}, {len(filtered)} clusters remaining.")
+        logger.info(
+            f"Custom filter removed {len(filtered_clusters) - len(filtered)}, {len(filtered)} clusters remaining."
+        )
         filtered_clusters = filtered
     matches = [match for cluster in filtered_clusters for match in cluster]
     logger.info(f"Filtered matches: {len(matches)}")

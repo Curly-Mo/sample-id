@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Iterable
 from dataclasses import dataclass, field
+from typing import Iterable
 
 import numpy as np
 
