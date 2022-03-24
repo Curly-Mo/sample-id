@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Iterable
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -142,3 +143,20 @@ class LazyFingerprints(Fingerprints):
     @property
     def index_to_ms(self):
         return self.data["index_to_ms"]
+
+
+@dataclass(unsafe_hash=True)
+class Keypoint:
+    """A fingerprint keypoint."""
+
+    kp: np.ndarray[np.float32] = field(repr=False, compare=False)
+    x: float = field(init=False)
+    y: float = field(init=False)
+    scale: float = field(init=False)
+    orientation: float = field(init=False)
+
+    def __post_init__(self):
+        self.x = self.kp[0].item()
+        self.y = self.kp[1].item()
+        self.scale = self.kp[2].item()
+        self.orientation = self.kp[3].item()

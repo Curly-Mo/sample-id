@@ -6,7 +6,7 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 
-def cluster(matches, cluster_size=3, cluster_dist=20.0):
+def cluster(matches, cluster_size: int = 3, cluster_dist: float = 20):
     logger.info("Clustering matches...")
     logger.debug(f"cluster_dist: {cluster_dist} samples")
     clusters = set()
@@ -20,7 +20,7 @@ def cluster(matches, cluster_size=3, cluster_dist=20.0):
     return clusters, total_clusters
 
 
-def ght(matches, cluster_dist=20.0):
+def ght(matches, cluster_dist: float = 20):
     votes = defaultdict(lambda: defaultdict(set))
     try:
         dim = max(m.neighbors[0].keypoint.scale for m in matches)
