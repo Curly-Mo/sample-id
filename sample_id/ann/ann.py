@@ -25,7 +25,7 @@ from . import query
 logger = logging.getLogger(__name__)
 
 
-MATCHER_FILENAME: str = "matcher.ann"
+MODEL_FILENAME: str = "matcher.ann"
 META_FILENAME: str = "meta.npz"
 
 
@@ -104,7 +104,7 @@ class Matcher(abc.ABC):
         """Save this matcher to disk."""
         with tempfile.TemporaryDirectory() as tmpdir:
             logger.info(f"Saving {self} to temporary dir: {tmpdir}")
-            tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
+            tmp_model_path = os.path.join(tmpdir, MODEL_FILENAME)
             tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
             tmp_model_path = self.save_model(tmp_model_path, **kwargs)
             self.meta.save(tmp_meta_path, compress=compress)
@@ -114,7 +114,7 @@ class Matcher(abc.ABC):
             util.tar_files(
                 filepath,
                 [tmp_model_path, tmp_meta_path],
-                [MATCHER_FILENAME, META_FILENAME],
+                [MODEL_FILENAME, META_FILENAME],
                 compression=tar_compression,
             )
         logger.debug(f"Tar file {filepath} size: {util.filesize(filepath)}")
@@ -148,18 +148,26 @@ class Matcher(abc.ABC):
     @classmethod
     def load(cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs) -> Matcher:
         """Load a matcher from disk."""
-        tempdir = tempfile.TemporaryDirectory()
         if dirname:
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+            tempdir = tempfile.TemporaryDirectory(dir=dirname)
             tempdir.name = dirname
+        else:
+            tempdir = tempfile.TemporaryDirectory()
         logger.debug(f"Unzipping {filepath} to {tempdir.name}...")
-        tmp_model_path = os.path.join(tempdir.name, MATCHER_FILENAME)
-        tmp_meta_path = os.path.join(tempdir.name, META_FILENAME)
-        util.untar_members(filepath, [MATCHER_FILENAME, META_FILENAME], tempdir.name, compression=tar_compression)
-        meta = MatcherMetadata.load(tmp_meta_path)
+        util.untar_members(filepath, [MODEL_FILENAME, META_FILENAME], tempdir.name, compression=tar_compression)
+        return cls.load_from_dir(tempdir.name, **kwargs)
+
+    @classmethod
+    def load_from_dir(cls, dirname: str, **kwargs) -> Matcher:
+        tempdir = tempfile.TemporaryDirectory(dir=dirname)
+        tempdir.name = dirname
+        model_path = os.path.join(tempdir.name, MODEL_FILENAME)
+        meta_path = os.path.join(tempdir.name, META_FILENAME)
+        meta = MatcherMetadata.load(meta_path)
         matcher = cls(meta)
         matcher.tempdir = tempdir
-        matcher.load_model(tmp_model_path, **kwargs)
+        matcher.load_model(model_path, **kwargs)
         return matcher
 
     def __repr__(self):
