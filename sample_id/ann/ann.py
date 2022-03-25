@@ -8,6 +8,7 @@ import itertools
 import logging
 import math
 import os
+import pathlib
 import statistics
 import tempfile
 from collections import defaultdict
@@ -97,26 +98,26 @@ class Matcher(abc.ABC):
         self,
         filepath: str,
         compress: bool = True,
-        compress_level: int = 9,
-        blocksize: int = 10 * 1024 * 1024,
-        threads: Optional[int] = None,
+        tar_compression: str = "gz",
         **kwargs,
     ) -> str:
         """Save this matcher to disk."""
-        with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                logger.info(f"Saving {self} to temporary dir: {tmpdir}")
-                tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
-                tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
-                tmp_model_path = self.save_model(tmp_model_path, **kwargs)
-                self.meta.save(tmp_meta_path, compress=compress)
-                logger.debug(f"Model file {tmp_model_path} size: {util.filesize(tmp_model_path)}")
-                logger.debug(f"Metadata file {tmp_meta_path} size: {util.filesize(tmp_meta_path)}")
-                util.tar_files(tmp_tarf.name, [tmp_model_path, tmp_meta_path], [MATCHER_FILENAME, META_FILENAME])
-            logger.debug(f"Tar file {tmp_tarf.name} size: {util.filesize(tmp_tarf.name)}")
-            logger.info(f"Zipping {tmp_tarf.name} into {filepath}")
-            util.gzip_file(filepath, tmp_tarf.name, compress_level=compress_level, blocksize=blocksize, threads=threads)
-        logger.info(f"Zipped file {filepath} size: {util.filesize(filepath)}")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger.info(f"Saving {self} to temporary dir: {tmpdir}")
+            tmp_model_path = os.path.join(tmpdir, MATCHER_FILENAME)
+            tmp_meta_path = os.path.join(tmpdir, META_FILENAME)
+            tmp_model_path = self.save_model(tmp_model_path, **kwargs)
+            self.meta.save(tmp_meta_path, compress=compress)
+            logger.debug(f"Model file {tmp_model_path} size: {util.filesize(tmp_model_path)}")
+            logger.debug(f"Metadata file {tmp_meta_path} size: {util.filesize(tmp_meta_path)}")
+            logger.info(f"Zipping {[tmp_model_path, tmp_meta_path]} into {filepath}")
+            util.tar_files(
+                filepath,
+                [tmp_model_path, tmp_meta_path],
+                [MATCHER_FILENAME, META_FILENAME],
+                compression=tar_compression,
+            )
+        logger.debug(f"Tar file {filepath} size: {util.filesize(filepath)}")
         return filepath
 
     def unload(self) -> None:
@@ -145,15 +146,16 @@ class Matcher(abc.ABC):
         return matcher.add_fingerprints(fingerprints, **kwargs)
 
     @classmethod
-    def load(cls, filepath: str, blocksize: int = 10 * 1024 * 1024, threads: Optional[int] = None, **kwargs) -> Matcher:
+    def load(cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs) -> Matcher:
         """Load a matcher from disk."""
-        with tempfile.NamedTemporaryFile(suffix=".tar") as tmp_tarf:
-            logger.debug(f"Unzipping {filepath} to {tmp_tarf.name}...")
-            util.gunzip_file(filepath, tmp_tarf.name, blocksize=blocksize, threads=threads)
-            tempdir = tempfile.TemporaryDirectory()
-            tmp_model_path = os.path.join(tempdir.name, MATCHER_FILENAME)
-            tmp_meta_path = os.path.join(tempdir.name, META_FILENAME)
-            util.untar(tmp_tarf.name, [MATCHER_FILENAME, META_FILENAME], tempdir.name)
+        tempdir = tempfile.TemporaryDirectory()
+        if dirname:
+            pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+            tempdir.name = dirname
+        logger.debug(f"Unzipping {filepath} to {tempdir.name}...")
+        tmp_model_path = os.path.join(tempdir.name, MATCHER_FILENAME)
+        tmp_meta_path = os.path.join(tempdir.name, META_FILENAME)
+        util.untar_members(filepath, [MATCHER_FILENAME, META_FILENAME], tempdir.name, compression=tar_compression)
         meta = MatcherMetadata.load(tmp_meta_path)
         matcher = cls(meta)
         matcher.tempdir = tempdir

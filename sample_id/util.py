@@ -64,9 +64,10 @@ def tar_files(
     files: Iterable[str],
     file_arcnames: Iterable[str],
     delete_added: bool = True,
+    compression: str = "gz",
 ) -> str:
     """Tar files."""
-    with tarfile.open(output_filename, mode="w") as tarf:
+    with tarfile.open(output_filename, mode=f"w:{compression}") as tarf:
         for file, arcname in zip(files, file_arcnames):
             tarf.add(file, arcname=arcname)
             if delete_added:
@@ -74,10 +75,12 @@ def tar_files(
     return output_filename
 
 
-def untar(input_tarfile: str, members: Iterable[str], output_dir: str) -> Iterable[str]:
-    """Untar an tarball."""
+def untar_members(
+    input_tarfile: str, members: Iterable[str], output_dir: str, compression: str = "gz"
+) -> Iterable[str]:
+    """Extract files from a tarball."""
     output_filenames = []
-    with tarfile.open(input_tarfile, mode="r") as tarf:
+    with tarfile.open(input_tarfile, mode=f"r:{compression}") as tarf:
         for member in members:
             out_filename = os.path.join(output_dir, member)
             logger.info(f"Extracting {member} to {out_filename}...")
