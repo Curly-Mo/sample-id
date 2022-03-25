@@ -159,7 +159,7 @@ class Result:
 
     def filter(self, sample_filter: Callable[[Sample], bool] = Sample.basic_filter()) -> Result:
         """Filter keeping only samples that fit the filter function."""
-        sources = {source: sample_filter(samples) for source, samples in self.sources.items()}
+        sources = {source: [sample_filter(s) for s in samples] for source, samples in self.sources.items()}
         self.sources = {source: samples for source, samples in sources.items() if samples}
         return self
 
