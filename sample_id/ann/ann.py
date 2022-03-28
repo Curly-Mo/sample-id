@@ -99,6 +99,7 @@ class Matcher(abc.ABC):
         filepath: str,
         compress: bool = True,
         tar_compression: str = "gz",
+        compresslevel: int = 9,
         **kwargs,
     ) -> str:
         """Save this matcher to disk."""
@@ -116,6 +117,7 @@ class Matcher(abc.ABC):
                 [tmp_model_path, tmp_meta_path],
                 [MODEL_FILENAME, META_FILENAME],
                 compression=tar_compression,
+                compresslevel=compresslevel,
             )
         logger.debug(f"Tar file {filepath} size: {util.filesize(filepath)}")
         return filepath

@@ -65,9 +65,10 @@ def tar_files(
     file_arcnames: Iterable[str],
     delete_added: bool = True,
     compression: str = "gz",
+    compresslevel=9,
 ) -> str:
     """Tar files."""
-    with tarfile.open(output_filename, mode=f"w:{compression}") as tarf:
+    with tarfile.open(output_filename, mode=f"w:{compression}", compresslevel=compresslevel) as tarf:
         for file, arcname in zip(files, file_arcnames):
             tarf.add(file, arcname=arcname)
             if delete_added:
