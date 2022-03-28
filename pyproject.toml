@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "sample_id"
-version = "0.1.20"
+version = "0.1.21"
 description = "Acoustic fingerprinting for Sample Identification"
 authors = [
     "Colin Fahy <colin@cfahy.com>",
