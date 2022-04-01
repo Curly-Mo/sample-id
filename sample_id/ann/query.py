@@ -3,13 +3,14 @@ from __future__ import annotations
 import bisect
 import dataclasses
 import datetime
+import functools
 import itertools
 import logging
 import math
 import statistics
 from collections import defaultdict
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Set
 
 import numpy as np
 
@@ -50,13 +51,43 @@ class Neighbor:
 class Cluster:
     """A group of Matches."""
 
-    matches: List[Match]
+    matches: Set[Match]
+
+    # def merge(self, other: Cluster) -> Cluster:
+    #     return Cluster(self.matches + other.matches)
+
+    def merge(self, other: Cluster) -> Cluster:
+        self.matches = self.matches.union(other.matches)
+        return self
+
+    @property
+    # @functools.lru_cache()
+    def min_deriv_x(self):
+        return min(m.keypoint.x for m in self.matches)
+
+    @property
+    # @functools.lru_cache()
+    def max_deriv_x(self):
+        return max(m.keypoint.x for m in self.matches)
+
+    @property
+    # @functools.lru_cache()
+    def min_source_x(self):
+        return min(m.neighbors[0].keypoint.x for m in self.matches)
+
+    @property
+    # @functools.lru_cache()
+    def max_source_x(self):
+        return max(m.neighbors[0].keypoint.x for m in self.matches)
 
     def __iter__(self):
         return iter(self.matches)
 
     def __len__(self):
         return len(self.matches)
+
+    def __hash__(self):
+        return hash(tuple(m for m in self.matches))
 
 
 @dataclass
@@ -90,7 +121,7 @@ class Sample:
         combos = itertools.combinations(cluster, 2)
         stretch_factors = [
             abs(m2.keypoint.x - m1.keypoint.x) / abs(m2.neighbors[0].keypoint.x - m1.neighbors[0].keypoint.x)
-            for m1, m2 in combos
+            for m1, m2 in combos if m2.neighbors[0].keypoint.x - m1.neighbors[0].keypoint.x != 0
         ]
         # TODO: read octave_bins from matcher somehow
         octave_bins = 36
