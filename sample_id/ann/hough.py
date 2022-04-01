@@ -24,11 +24,11 @@ def cluster(
             if len(cluster) >= cluster_size:
                 source_clusters.add(query.Cluster(cluster))
         logger.debug(
-            f"{source}: clusters: {len(source_clusters)}, matches: {len([m for c in source_clusters for m in c.matches])}"
+            f"{source}: clusters: {len(source_clusters)}, matches: {len(set(m for c in source_clusters for m in c.matches))}"
         )
         source_clusters = merge_nearby_clusters(source_clusters, cluster_dist)
         logger.debug(
-            f"{source}: merged clusters: {len(source_clusters)}, merged matches: {len([m for c in source_clusters for m in c.matches])}"
+            f"{source}: merged clusters: {len(source_clusters)}, merged matches: {len(set(m for c in source_clusters for m in c.matches))}"
         )
         clusters = clusters.union(source_clusters)
         # clusters.add(frozenset(cluster))
@@ -47,27 +47,25 @@ def ght(matches: List[query.Match], cluster_dist: float = 20) -> Dict[str, Dict[
         dim = 2
     for match in matches:
         ds = round_to(match.keypoint.scale / match.neighbors[0].keypoint.scale, 2)
-        d_theta = round_to(match.keypoint.orientation - match.neighbors[0].keypoint.orientation, 0.4)
+        # d_theta = round_to(match.keypoint.orientation - match.neighbors[0].keypoint.orientation, 0.5)
         dx = round_to(match.keypoint.x - match.neighbors[0].keypoint.x, 1.5 * dim)
         dy = round_to(match.keypoint.y - match.neighbors[0].keypoint.y, 1.5 * dim)
-        bins = itertools.product(*(dx, dy))
+        bins = itertools.product(*(dx, dy, ds))
         for bin in bins:
-            train_kps = [tuple(m.neighbors[0].keypoint.kp[:2]) for m in votes[match.neighbors[0].source_id][bin]]
-            x = [m.neighbors[0].keypoint.x for m in votes[match.neighbors[0].source_id][bin]]
+            x_vals = [m.neighbors[0].keypoint.x for m in votes[match.neighbors[0].source_id][bin]]
             try:
-                min_x = min(x)
-                max_x = max(x)
+                min_x = min(x_vals)
+                max_x = max(x_vals)
             except:
                 min_x = max_x = match.neighbors[0].keypoint.x
-            if tuple(match.neighbors[0].keypoint.kp[:2]) not in train_kps:
-                if min_x - cluster_dist < match.neighbors[0].keypoint.x < max_x + cluster_dist:
-                    votes[match.neighbors[0].source_id][bin].add(match)
+            if min_x - cluster_dist < match.neighbors[0].keypoint.x < max_x + cluster_dist:
+                votes[match.neighbors[0].source_id][bin].add(match)
     return votes
 
 
-def round_to(x: float, base: float = 1, n: float = 2) -> Tuple[float, float]:
-    lo = base * math.floor(float(x) / base)
-    hi = base * math.ceil(float(x) / base)
+def round_to(x: float, base: float = 1, sig_figs: int = 4) -> Tuple[float, float]:
+    lo = round(base * math.floor(float(x) / base), sig_figs)
+    hi = round(base * math.ceil(float(x) / base), sig_figs)
     return (lo, hi)
 
 

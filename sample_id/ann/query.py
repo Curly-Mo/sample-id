@@ -234,20 +234,6 @@ def filter_matches(
     cluster_filter: Optional[Callable[[Cluster], bool]] = basic_cluster_filter(),
 ) -> List[Cluster]:
     logger.info("Filtering nearest neighbors down to actual matched samples")
-    if match_orientation:
-        # Remove matches with differing orientations
-        total = len(matches)
-        for match in list(matches):
-            orient = match.keypoint.orientation
-            while match.neighbors and abs(orient - match.neighbors[0].keypoint.orientation) > 0.2:
-                # replace(match, neighbors=match.neighbors[1:])
-                match.neighbors = match.neighbors[1:]
-            if not match.neighbors:
-                matches.remove(match)
-            # elif len(match.neighbors) < 2:
-            #     # logger.warn('Orientation check left < 2 neighbors')
-            #     matches.remove(match)
-        logger.info("Differing orientations removed: {}, remaining: {}".format(total - len(matches), len(matches)))
     if abs_thresh:
         # Apply absolute threshold
         total = len(matches)
@@ -267,6 +253,20 @@ def filter_matches(
             if not (n1.distance < ratio_thresh * d2):
                 matches.remove(match)
         logger.info("Ratio threshold removed: {}, remaining: {}".format(total - len(matches), len(matches)))
+    if match_orientation:
+        # Remove matches with differing orientations
+        total = len(matches)
+        for match in list(matches):
+            orient = match.keypoint.orientation
+            while match.neighbors and abs(orient - match.neighbors[0].keypoint.orientation) > 0.3:
+                # replace(match, neighbors=match.neighbors[1:])
+                match.neighbors = match.neighbors[1:]
+            if not match.neighbors:
+                matches.remove(match)
+            # elif len(match.neighbors) < 2:
+            #     # logger.warn('Orientation check left < 2 neighbors')
+            #     matches.remove(match)
+        logger.info("Differing orientations removed: {}, remaining: {}".format(total - len(matches), len(matches)))
     # Only keep when there are multiple within a time cluster
     # clusters = list(cluster_matches(matches, cluster_dist))
     # filtered_clusters = [cluster for cluster in clusters if len(cluster) >= cluster_size]
@@ -294,8 +294,8 @@ def filter_matches(
             f"Custom filter removed {len(filtered_clusters) - len(filtered)}, {len(filtered)} clusters remaining."
         )
         filtered_clusters = filtered
-    matches = [match for cluster in filtered_clusters for match in cluster]
-    logger.info(f"Filtered matches: {len(matches)}")
+    filtered_matches = set(match for cluster in filtered_clusters for match in cluster)
+    logger.info(f"Filtered matches: {len(filtered_matches)}")
     return filtered_clusters
 
 
