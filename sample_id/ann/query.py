@@ -10,7 +10,7 @@ import math
 import statistics
 from collections import defaultdict
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Set
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -121,7 +121,8 @@ class Sample:
         combos = itertools.combinations(cluster, 2)
         stretch_factors = [
             abs(m2.keypoint.x - m1.keypoint.x) / abs(m2.neighbors[0].keypoint.x - m1.neighbors[0].keypoint.x)
-            for m1, m2 in combos if m2.neighbors[0].keypoint.x - m1.neighbors[0].keypoint.x != 0
+            for m1, m2 in combos
+            if m2.neighbors[0].keypoint.x - m1.neighbors[0].keypoint.x != 0
         ]
         # TODO: read octave_bins from matcher somehow
         octave_bins = 36

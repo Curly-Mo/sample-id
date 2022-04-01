@@ -23,9 +23,13 @@ def cluster(
         for bin, cluster in bins.items():
             if len(cluster) >= cluster_size:
                 source_clusters.add(query.Cluster(cluster))
-        logger.debug(f"{source}: clusters: {len(source_clusters)}, matches: {len([m for c in source_clusters for m in c.matches])}")
+        logger.debug(
+            f"{source}: clusters: {len(source_clusters)}, matches: {len([m for c in source_clusters for m in c.matches])}"
+        )
         source_clusters = merge_nearby_clusters(source_clusters, cluster_dist)
-        logger.debug(f"{source}: merged clusters: {len(source_clusters)}, merged matches: {len([m for c in source_clusters for m in c.matches])}")
+        logger.debug(
+            f"{source}: merged clusters: {len(source_clusters)}, merged matches: {len([m for c in source_clusters for m in c.matches])}"
+        )
         clusters = clusters.union(source_clusters)
         # clusters.add(frozenset(cluster))
     # clusters = [query.Cluster(c) for c in clusters]
