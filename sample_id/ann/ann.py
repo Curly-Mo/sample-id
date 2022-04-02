@@ -101,7 +101,9 @@ class Matcher(abc.ABC):
         filepath: str,
         compress: bool = True,
         tar_compression: str = "gz",
-        compresslevel: int = 9,
+        compresslevel=util.COMPRESS_LEVEL_BEST,
+        blocksize=util.DEFAULT_BLOCK_SIZE_KB,
+        workers=util.CPU_COUNT,
         **kwargs,
     ) -> str:
         """Save this matcher to disk."""
@@ -114,12 +116,14 @@ class Matcher(abc.ABC):
             logger.debug(f"Model file {tmp_model_path} size: {util.filesize(tmp_model_path)}")
             logger.debug(f"Metadata file {tmp_meta_path} size: {util.filesize(tmp_meta_path)}")
             logger.info(f"Zipping {[tmp_model_path, tmp_meta_path]} into {filepath}")
-            util.tar_files(
+            util.tar_gz_files(
                 filepath,
                 [tmp_model_path, tmp_meta_path],
                 [MODEL_FILENAME, META_FILENAME],
                 compression=tar_compression,
                 compresslevel=compresslevel,
+                blocksize=blocksize,
+                workers=workers,
             )
         logger.debug(f"Tar file {filepath} size: {util.filesize(filepath)}")
         return filepath
@@ -162,7 +166,7 @@ class Matcher(abc.ABC):
         """Extract a model to a temporary directory."""
         tempdir = util.NamedTemporaryDirectory.of(dirname)
         logger.debug(f"Unzipping {filepath} to {tempdir.name}...")
-        util.untar_members(filepath, [MODEL_FILENAME, META_FILENAME], tempdir.name, compression=tar_compression)
+        util.untar_members(filepath, [MODEL_FILENAME, META_FILENAME], tempdir.name)
         return tempdir
 
     @classmethod

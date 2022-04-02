@@ -8,9 +8,13 @@ import tempfile
 import weakref
 from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
-import mgzip
+from pigz_python import pigz_python
 
 logger = logging.getLogger(__name__)
+
+COMPRESS_LEVEL_BEST = pigz_python._COMPRESS_LEVEL_BEST
+DEFAULT_BLOCK_SIZE_KB = pigz_python.DEFAULT_BLOCK_SIZE_KB
+CPU_COUNT = os.cpu_count()
 
 
 def class_repr(cls, filter_types: Sequence[Any] = [], **kwargs) -> str:
@@ -65,12 +69,13 @@ def tar_files(
     output_filename: str,
     files: Iterable[str],
     file_arcnames: Iterable[str],
-    delete_added: bool = True,
     compression: str = "gz",
     compresslevel=9,
+    delete_added: bool = True,
 ) -> str:
     """Tar files."""
-    with tarfile.open(output_filename, mode=f"w:{compression}", compresslevel=compresslevel) as tarf:
+    kwargs = {"compresslevel": compresslevel} if compression else {}
+    with tarfile.open(output_filename, mode=f"w:{compression}", **kwargs) as tarf:
         for file, arcname in zip(files, file_arcnames):
             tarf.add(file, arcname=arcname)
             if delete_added:
@@ -78,12 +83,10 @@ def tar_files(
     return output_filename
 
 
-def untar_members(
-    input_tarfile: str, members: Iterable[str], output_dir: str, compression: str = "gz"
-) -> Iterable[str]:
+def untar_members(input_tarfile: str, members: Iterable[str], output_dir: str) -> Iterable[str]:
     """Extract files from a tarball."""
     output_filenames = []
-    with tarfile.open(input_tarfile, mode=f"r:{compression}") as tarf:
+    with tarfile.open(input_tarfile, mode="r") as tarf:
         for member in members:
             out_filename = os.path.join(output_dir, member)
             logger.info(f"Extracting {member} to {out_filename}...")
@@ -92,32 +95,41 @@ def untar_members(
     return output_filenames
 
 
-def gzip_file(
+def tar_gz_files(
     output_filename: str,
-    input_filename: str,
-    compress_level: int = 9,
-    blocksize: int = 5 * 1024 * 1024,
-    threads: Optional[int] = None,
+    files: Iterable[str],
+    file_arcnames: Iterable[str],
+    compression: str = "gz",
+    compresslevel=COMPRESS_LEVEL_BEST,
+    blocksize=DEFAULT_BLOCK_SIZE_KB,
+    workers=CPU_COUNT,
+    delete_added: bool = True,
 ) -> str:
-    """Gzip a file using mgzip for multithreading."""
-    with mgzip.open(
-        output_filename, mode="wb", compresslevel=compress_level, blocksize=blocksize, thread=threads
-    ) as f_out:
-        with open(input_filename, "rb") as f_in:
-            shutil.copyfileobj(f_in, f_out, length=blocksize // 2)
-    return output_filename
+    """Tar and gzip files using pigz for multithreading."""
+    with tempfile.NamedTemporaryFile() as tarf:
+        if compression != "gz":
+            # Can't use pigz for the compression
+            return tar_files(
+                output_filename,
+                files,
+                file_arcnames,
+                delete_added=delete_added,
+                compression=compression,
+                compresslevel=compresslevel,
+            )
+            tmp_file = tarf.name
+        else:
+            tar_files(tarf.name, files, file_arcnames, delete_added=delete_added, compression="")
+            tmp_file = f"{tarf.name}.gz"
+            pigz_python.compress_file(
+                tarf.name,
+                compresslevel=compresslevel,
+                blocksize=blocksize,
+                workers=workers,
+            )
 
-
-def gunzip_file(
-    input_filename: str,
-    output_filename: str,
-    blocksize: int = 5 * 1024 * 1024,
-    threads: Optional[int] = None,
-) -> str:
-    """Gzip a file using mgzip for multithreading."""
-    with open(output_filename, mode="wb") as f_out:
-        with mgzip.open(input_filename, mode="rb", blocksize=blocksize, thread=threads) as f_in:
-            shutil.copyfileobj(f_in, f_out, length=blocksize // 2)
+        os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+        shutil.move(tmp_file, output_filename)
     return output_filename
 
 
