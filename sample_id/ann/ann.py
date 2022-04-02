@@ -159,13 +159,8 @@ class Matcher(abc.ABC):
     def extract_to_dir(
         cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs
     ) -> tempfile.TemporaryDirectory:
-        """Load a matcher from disk."""
-        if dirname:
-            pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
-            tempdir = tempfile.TemporaryDirectory(dir=dirname)
-            tempdir.name = dirname
-        else:
-            tempdir = tempfile.TemporaryDirectory()
+        """Extract a model to a temporary directory."""
+        tempdir = util.NamedTemporaryDirectory.of(dirname)
         logger.debug(f"Unzipping {filepath} to {tempdir.name}...")
         util.untar_members(filepath, [MODEL_FILENAME, META_FILENAME], tempdir.name, compression=tar_compression)
         return tempdir
@@ -173,11 +168,7 @@ class Matcher(abc.ABC):
     @classmethod
     def load_from_dir(cls, dir: Union[str, tempfile.TemporaryDirectory], **kwargs) -> Matcher:
         """Load a matcher from a dir with a model and metadata file in it."""
-        if isinstance(dir, tempfile.TemporaryDirectory):
-            tempdir = dir
-        else:
-            tempdir = tempfile.TemporaryDirectory(dir=dir)
-            tempdir.name = dir
+        tempdir = util.NamedTemporaryDirectory.of(dir)
         model_path = os.path.join(tempdir.name, MODEL_FILENAME)
         meta_path = os.path.join(tempdir.name, META_FILENAME)
         meta = MatcherMetadata.load(meta_path)

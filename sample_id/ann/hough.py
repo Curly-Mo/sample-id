@@ -23,24 +23,18 @@ def cluster(
         for bin, cluster in bins.items():
             if len(cluster) >= cluster_size:
                 source_clusters.add(query.Cluster(cluster))
-        logger.debug(
-            f"{source}: clusters: {len(source_clusters)}, matches: {len(set(m for c in source_clusters for m in c.matches))}"
-        )
         source_clusters = merge_nearby_clusters(source_clusters, cluster_dist)
-        logger.debug(
-            f"{source}: merged clusters: {len(source_clusters)}, merged matches: {len(set(m for c in source_clusters for m in c.matches))}"
-        )
         clusters = clusters.union(source_clusters)
-        # clusters.add(frozenset(cluster))
-    # clusters = [query.Cluster(c) for c in clusters]
     clusters = list(clusters)
     total_clusters = [query.Cluster(c) for bins in votes.values() for c in bins.values()]
     return clusters, total_clusters
 
 
-def ght(matches: List[query.Match], cluster_dist: float = 20) -> Dict[str, Dict[Tuple[float, float], Set[query.Match]]]:
+def ght(
+    matches: List[query.Match], cluster_dist: float = 20
+) -> Dict[str, Dict[Tuple[float, float, float], Set[query.Match]]]:
     """Generalized Hough transform"""
-    votes = defaultdict(lambda: defaultdict(set))
+    votes: Dict[str, Dict[Tuple[float, float, float], Set[query.Match]]] = defaultdict(lambda: defaultdict(set))
     try:
         dim = max(m.neighbors[0].keypoint.scale for m in matches)
     except:

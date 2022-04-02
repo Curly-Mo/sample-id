@@ -1,10 +1,12 @@
 import functools
 import logging
 import os
+import pathlib
 import shutil
 import tarfile
 import tempfile
-from typing import Any, Dict, Iterable, Optional, Sequence
+import weakref
+from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
 import mgzip
 
@@ -117,3 +119,23 @@ def gunzip_file(
         with mgzip.open(input_filename, mode="rb", blocksize=blocksize, thread=threads) as f_in:
             shutil.copyfileobj(f_in, f_out, length=blocksize // 2)
     return output_filename
+
+
+class NamedTemporaryDirectory(tempfile.TemporaryDirectory):
+    """A wrapper around tempfile.TemporaryDirectory that allows for specifying the path."""
+
+    def __init__(self, path: str):
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+        self.name = path
+        self._finalizer = weakref.finalize(
+            self, self._cleanup, self.name, warn_message="Implicitly cleaning up {!r}".format(self)
+        )
+
+    @classmethod
+    def of(cls, dir: Union[str, tempfile.TemporaryDirectory, None]) -> tempfile.TemporaryDirectory:
+        """Convenience method to get a TemporaryDirectory from a Union of possible dir references."""
+        if isinstance(dir, tempfile.TemporaryDirectory):
+            return dir
+        if isinstance(dir, str):
+            return cls(dir)
+        return tempfile.TemporaryDirectory()
