@@ -13,7 +13,7 @@ import statistics
 import tempfile
 from collections import defaultdict
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -32,6 +32,7 @@ META_FILENAME: str = "meta.npz"
 # TODO: Make this a proper interface, for now just implementing annoy
 class Matcher(abc.ABC):
     """Nearest neighbor matcher that may use one of various implementations under the hood."""
+    tempdir: Optional[tempfile.TemporaryDirectory] = None
 
     def __init__(self, metadata: MatcherMetadata):
         self.index = 0
@@ -125,7 +126,7 @@ class Matcher(abc.ABC):
     def unload(self) -> None:
         """Unload things from memory and cleanup any temporary files."""
         self.model.unload()
-        if "tempdir" in vars(self):
+        if self.tempdir:
             self.tempdir.cleanup()
 
     @classmethod
@@ -150,6 +151,12 @@ class Matcher(abc.ABC):
     @classmethod
     def load(cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs) -> Matcher:
         """Load a matcher from disk."""
+        tempdir = cls.extract_to_dir(filepath, dirname=dirname, tar_compression=tar_compression)
+        return cls.load_from_dir(tempdir, **kwargs)
+
+    @classmethod
+    def extract_to_dir(cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs) -> tempfile.TemporaryDirectory:
+        """Load a matcher from disk."""
         if dirname:
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
             tempdir = tempfile.TemporaryDirectory(dir=dirname)
@@ -158,12 +165,16 @@ class Matcher(abc.ABC):
             tempdir = tempfile.TemporaryDirectory()
         logger.debug(f"Unzipping {filepath} to {tempdir.name}...")
         util.untar_members(filepath, [MODEL_FILENAME, META_FILENAME], tempdir.name, compression=tar_compression)
-        return cls.load_from_dir(tempdir.name, **kwargs)
+        return tempdir
 
     @classmethod
-    def load_from_dir(cls, dirname: str, **kwargs) -> Matcher:
-        tempdir = tempfile.TemporaryDirectory(dir=dirname)
-        tempdir.name = dirname
+    def load_from_dir(cls, dir: Union[str, tempfile.TemporaryDirectory], **kwargs) -> Matcher:
+        """Load a matcher from a dir with a model and metadata file in it."""
+        if isinstance(dir, tempfile.TemporaryDirectory):
+            tempdir = dir
+        else:
+            tempdir = tempfile.TemporaryDirectory(dir=dir)
+            tempdir.name = dir
         model_path = os.path.join(tempdir.name, MODEL_FILENAME)
         meta_path = os.path.join(tempdir.name, META_FILENAME)
         meta = MatcherMetadata.load(meta_path)
