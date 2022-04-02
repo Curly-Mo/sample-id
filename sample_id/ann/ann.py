@@ -32,6 +32,7 @@ META_FILENAME: str = "meta.npz"
 # TODO: Make this a proper interface, for now just implementing annoy
 class Matcher(abc.ABC):
     """Nearest neighbor matcher that may use one of various implementations under the hood."""
+
     tempdir: Optional[tempfile.TemporaryDirectory] = None
 
     def __init__(self, metadata: MatcherMetadata):
@@ -155,7 +156,9 @@ class Matcher(abc.ABC):
         return cls.load_from_dir(tempdir, **kwargs)
 
     @classmethod
-    def extract_to_dir(cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs) -> tempfile.TemporaryDirectory:
+    def extract_to_dir(
+        cls, filepath: str, dirname: Optional[str] = None, tar_compression: str = "gz", **kwargs
+    ) -> tempfile.TemporaryDirectory:
         """Load a matcher from disk."""
         if dirname:
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
