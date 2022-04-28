@@ -132,16 +132,16 @@ class Sample:
         time_stretch = None if not stretch_factors else statistics.median(stretch_factors)
         distances = [match.neighbors[0].distance for match in cluster]
         sample = cls(
-            derivative_start_time,
-            derivative_end_time,
-            source_start_time,
-            source_end_time,
-            pitch_shift,
-            time_stretch,
-            cls.score(cluster),
-            len(cluster),
-            min(distances),
-            statistics.mean(distances),
+            derivative_start=derivative_start_time,
+            derivative_end=derivative_end_time,
+            source_start=source_start_time,
+            source_end=source_end_time,
+            pitch_shift_factor=pitch_shift,
+            time_stretch_factor=time_stretch,
+            confidence=cls.score(cluster),
+            size=len(cluster),
+            min_distance=min(distances),
+            average_distance=statistics.mean(distances),
         )
         # TODO: for debugging purposes only
         sample.cluster = cluster
@@ -152,7 +152,7 @@ class Sample:
     def score(cls, cluster: Cluster) -> float:
         sigmoid = lambda x: 1.0 / (1 + math.exp(-x))
         distances = [match.neighbors[0].distance for match in cluster]
-        return sigmoid(len(cluster) - 3) * (1 - statistics.mean(distances))
+        return sigmoid(len(cluster) - 5) * (1 - statistics.harmonic_mean(distances))
         # return sigmoid(len(cluster) - 3) * sigmoid(12 - abs(pitch_shift)) * sigmoid(1 - abs(time_stretch))
 
     def as_dict(self) -> dict:

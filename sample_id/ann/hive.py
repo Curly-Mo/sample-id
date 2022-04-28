@@ -82,6 +82,10 @@ class HiveMatcher(Matcher):
         for matcher in self.matchers:
             matches = matcher.nearest_neighbors(fp, k)
             hive_matches.append(matches)
+        resorted_matches = self.resolve_hive_matches(hive_matches, k)
+        return resorted_matches
+
+    def resolve_hive_matches(self, hive_matches: List[List[Match]], k: int = 1) -> Sequence[Match]:
         resorted_matches = []
         for kp_hive_matches in zip(*hive_matches):
             top_k_neighbors = sorted(
