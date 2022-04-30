@@ -8,6 +8,7 @@ import tempfile
 import weakref
 from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
+import numpy as np
 from pigz_python import pigz_python
 
 logger = logging.getLogger(__name__)
@@ -151,3 +152,7 @@ class NamedTemporaryDirectory(tempfile.TemporaryDirectory):
         if isinstance(dir, str):
             return cls(dir)
         return tempfile.TemporaryDirectory()
+
+
+def round_array(array: np.ndarray, to_nearest: float = 10.0) -> np.ndarray:
+    return (array / to_nearest).round() * to_nearest

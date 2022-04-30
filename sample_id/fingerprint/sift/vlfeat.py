@@ -34,8 +34,8 @@ class SiftVlfeat(SiftFingerprint):
     def sift(
         self,
         S,
-        contrast_thresh=5,
-        edge_thresh=5.0,
+        contrast_thresh=3,
+        edge_thresh=2.0,
         levels=3,
         magnif=3,
         window_size=2,

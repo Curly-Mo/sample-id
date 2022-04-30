@@ -50,20 +50,16 @@ class Fingerprint:
         self.size = len(keypoints)
         self.octave_bins = octave_bins
 
-    def remove_similar_keypoints(self):
+    def remove_similar_keypoints(self, rounding_factor: float = 10.0):
         if len(self.descriptors) > 0:
             logger.info(f"{self.id}: Removing duplicate/similar keypoints...")
-            a = np.array(self.descriptors)
-            rounding_factor = 10
-            b = np.ascontiguousarray((a // rounding_factor) * rounding_factor).view(
-                np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
-            )
-            _, idx = np.unique(b, return_index=True)
-            desc = a[sorted(idx)]
-            kp = np.array([k for i, k in enumerate(self.keypoints) if i in idx])
-            logger.info(f"{self.id}: Removed {a.shape[0] - idx.shape[0]} duplicate keypoints")
-            self.keypoints = kp
-            self.descriptors = desc
+            rounded = (self.descriptors / rounding_factor).round() * rounding_factor
+            _, idx = np.unique(rounded, axis=0, return_index=True)
+            deduped_descriptors = self.descriptors[sorted(idx)]
+            deduped_keypoints = self.keypoints[sorted(idx)]
+            logger.info(f"{self.id}: Removed {self.keypoints.shape[0] - idx.shape[0]} duplicate keypoints")
+            self.keypoints = deduped_keypoints
+            self.descriptors = deduped_descriptors
             self.is_deduped = True
 
     def keypoint_ms(self, kp) -> int:
