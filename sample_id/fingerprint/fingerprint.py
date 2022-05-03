@@ -79,6 +79,7 @@ class Fingerprint:
         save_fn = np.savez_compressed if compress else np.savez
         # save all attributes used in constructor
         constructor_arg_names = self.__init__.__code__.co_varnames[1:]
+        constructor_arg_names = constructor_arg_names + Fingerprint.__init__.__code__.co_varnames[1:]
         constructor_kwargs = {name: getattr(self, name, None) for name in constructor_arg_names}
         constructor_kwargs = {key: value for key, value in constructor_kwargs.items() if value is not None}
         save_fn(filepath, **constructor_kwargs)
